@@ -18,21 +18,24 @@ function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   const { camera } = useThree();
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
   const t = useRef(reducedMotion ? INTRO_S : 0);
+  const aspect = useThree((s) => s.size.width / s.size.height);
+  // pull the camera back on tall/narrow screens so the whole island fits
+  const end = useMemo(() => END.clone().multiplyScalar(Math.min(2.1, Math.max(1, 1.15 / aspect))), [aspect]);
   useFrame((_, dt) => {
     if (!controls) return;
     if (t.current < INTRO_S) {
       t.current = Math.min(INTRO_S, t.current + Math.min(dt, 0.05));
       const p = t.current / INTRO_S;
       const e = 1 - Math.pow(1 - p, 3);
-      camera.position.lerpVectors(START, END, e);
+      camera.position.lerpVectors(START, end, e);
       controls.target.copy(TARGET);
       controls.enabled = p >= 1;
       controls.update();
     }
   });
   useEffect(() => {
-    if (reducedMotion) camera.position.copy(END);
-  }, [reducedMotion, camera]);
+    if (reducedMotion) camera.position.copy(end);
+  }, [reducedMotion, camera, end]);
   return null;
 }
 
@@ -273,7 +276,7 @@ export default function WorldScene({ reducedMotion, onOpenAbout, onReady }: Prop
           enableDamping
           dampingFactor={0.08}
           minDistance={8}
-          maxDistance={34}
+          maxDistance={42}
           minPolarAngle={0.35}
           maxPolarAngle={1.42}
           rotateSpeed={0.6}
