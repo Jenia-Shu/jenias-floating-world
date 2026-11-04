@@ -169,7 +169,7 @@ export function Cloud({ position, scale = 1, speed = 0.05, reducedMotion }: { po
         [-0.95, -0.2, 0, 0.7],
         [0.3, 0.35, -0.1, 0.65],
         [-0.4, 0.25, 0.2, 0.55],
-      ].map(([x, y, z, s], i) => (
+      ].map(([x = 0, y = 0, z = 0, s = 1], i) => (
         <mesh key={i} geometry={geo.blob} material={cloudMat} position={[x, y, z]} scale={[s, s * 0.7, s * 0.8]} />
       ))}
     </group>
