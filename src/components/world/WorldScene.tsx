@@ -119,7 +119,8 @@ export default function WorldScene({ reducedMotion, onOpenAbout, onReady }: Prop
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       camera={{ position: reducedMotion ? END.toArray() : START.toArray(), fov: 40, near: 0.1, far: 200 }}
-      onCreated={({ gl }) => {
+      onCreated={({ gl, scene }) => {
+        if (import.meta.env.DEV) (window as unknown as { __scene: THREE.Scene }).__scene = scene;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.05;
       }}
