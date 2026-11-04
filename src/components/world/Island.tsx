@@ -50,7 +50,7 @@ function buildRock(s: IslandShape, muted: boolean) {
     const strata = 1 + 0.04 * Math.sin(t * 30 + n * 2.5) + 0.07 * n;
     const r = R * profile * strata;
     const dir = Math.hypot(vx, vz) || 1;
-    pos.setXYZ(i, (vx / dir) * r, -t * s.depth + 0.04, (vz / dir) * r);
+    pos.setXYZ(i, (vx / dir) * r, -t * s.depth - 0.03, (vz / dir) * r);
     const band = Math.floor(t * 7 + 0.7 * Math.sin(th * 3 + s.seed) + n * 0.6);
     const c = t < 0.07 ? pal[0]! : pal[((band % pal.length) + pal.length) % pal.length]!;
     tmp.copy(c).offsetHSL(0, 0, n * 0.04 - t * 0.08);
