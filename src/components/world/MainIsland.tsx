@@ -51,7 +51,7 @@ function makeWaterfallTexture() {
   return t;
 }
 
-function StreamAndFall({ reducedMotion }: { reducedMotion?: boolean }) {
+function StreamAndFall({ reducedMotion }: { reducedMotion?: boolean | undefined }) {
   const tex = useMemo(makeWaterfallTexture, []);
   const streamGeo = useMemo(() => {
     const steps = 16;
@@ -137,7 +137,7 @@ function Bridge() {
 }
 
 type Props = {
-  reducedMotion?: boolean;
+  reducedMotion?: boolean | undefined;
   onOpen: () => void;
   hovered: boolean;
   setHovered: (h: boolean) => void;
@@ -200,7 +200,7 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props
       if (!clear(cx, cz)) continue;
       for (let k = 0; k < 5; k++) {
         const x = cx + (hash(i * 11 + k) - 0.5) * 0.5, z = cz + (hash(i * 13 + k) - 0.5) * 0.5;
-        if (clear(x, z)) flowers.push({ p: [x, h(x, z), z], c: flowerColors[(i + k) % flowerColors.length] });
+        if (clear(x, z)) flowers.push({ p: [x, h(x, z), z], c: flowerColors[(i + k) % flowerColors.length]! });
       }
     }
     for (let i = 0; i < 300 && mushrooms.length < 9; i++) {

@@ -6,7 +6,7 @@ import { ROCK_PALETTE, noise2, shapeRadius, surfaceHeight, type IslandShape } fr
 function buildGrass(s: IslandShape, color: string) {
   const g = new THREE.RingGeometry(0.0001, 1, 120, 28);
   g.rotateX(-Math.PI / 2);
-  const pos = g.attributes.position as THREE.BufferAttribute;
+  const pos = g.attributes["position"] as THREE.BufferAttribute;
   const colors = new Float32Array(pos.count * 3);
   const base = new THREE.Color(color);
   const tmp = new THREE.Color();
@@ -34,7 +34,7 @@ function buildGrass(s: IslandShape, color: string) {
 
 function buildRock(s: IslandShape, muted: boolean) {
   const g = new THREE.SphereGeometry(1, 96, 36, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
-  const pos = g.attributes.position as THREE.BufferAttribute;
+  const pos = g.attributes["position"] as THREE.BufferAttribute;
   const colors = new Float32Array(pos.count * 3);
   const pal = ROCK_PALETTE.map((c) => new THREE.Color(c));
   const tmp = new THREE.Color();
@@ -52,7 +52,7 @@ function buildRock(s: IslandShape, muted: boolean) {
     const dir = Math.hypot(vx, vz) || 1;
     pos.setXYZ(i, (vx / dir) * r, -t * s.depth - 0.02, (vz / dir) * r);
     const band = Math.floor(t * 7 + 0.7 * Math.sin(th * 3 + s.seed) + n * 0.6);
-    const c = t < 0.07 ? pal[0] : pal[((band % pal.length) + pal.length) % pal.length];
+    const c = t < 0.07 ? pal[0]! : pal[((band % pal.length) + pal.length) % pal.length]!;
     tmp.copy(c).offsetHSL(0, 0, n * 0.04 - t * 0.08);
     if (muted) tmp.lerp(gray, 0.35);
     colors.set([tmp.r, tmp.g, tmp.b], i * 3);
@@ -68,10 +68,10 @@ type IslandProps = {
   grass: string;
   muted?: boolean;
   bobPhase?: number;
-  reducedMotion?: boolean;
+  reducedMotion?: boolean | undefined;
   children?: ReactNode;
-  onSelect?: () => void;
-  onHover?: (h: boolean) => void;
+  onSelect?: (() => void) | undefined;
+  onHover?: ((h: boolean) => void) | undefined;
 };
 
 export function Island({ shape, position, grass, muted, bobPhase = 0, reducedMotion, children, onSelect, onHover }: IslandProps) {
@@ -97,9 +97,13 @@ export function Island({ shape, position, grass, muted, bobPhase = 0, reducedMot
     <group
       ref={ref}
       position={position}
-      onClick={click}
-      onPointerOver={onHover ? (e) => (e.stopPropagation(), onHover(true)) : undefined}
-      onPointerOut={onHover ? () => onHover(false) : undefined}
+      {...(click ? { onClick: click } : {})}
+      {...(onHover
+        ? {
+            onPointerOver: (e: ThreeEvent<PointerEvent>) => (e.stopPropagation(), onHover(true)),
+            onPointerOut: () => onHover(false),
+          }
+        : {})}
     >
       <mesh geometry={grassGeo} receiveShadow castShadow>
         <meshStandardMaterial vertexColors roughness={0.92} />
