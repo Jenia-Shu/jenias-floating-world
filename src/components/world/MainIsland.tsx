@@ -1,6 +1,5 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { Island } from "./Island";
 import { Cottage, Flowers, Mushroom, PathStones, Rock, Tree } from "./details";
@@ -264,12 +263,6 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props
         <Rock key={i} position={r.p} scale={r.s} rot={r.r} />
       ))}
 
-      <Html position={[0, 2.9, 0]} center zIndexRange={[20, 0]}>
-        <button type="button" onClick={onOpen} className="region-label region-label--active" aria-label="Open About Me">
-          <span className="region-dot" aria-hidden />
-          About Me
-        </button>
-      </Html>
     </Island>
   );
 }

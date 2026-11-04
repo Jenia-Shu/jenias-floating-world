@@ -160,6 +160,12 @@ export default function WorldScene({ reducedMotion, onOpenAbout, onReady }: Prop
           <LockedIsland key={i} data={l} reducedMotion={reducedMotion} />
         ))}
         <SteppingRocks />
+        <Html position={[0, 3, 0]} center zIndexRange={[20, 0]}>
+          <button type="button" onClick={onOpenAbout} className="region-label region-label--active" aria-label="Open About Me">
+            <span className="region-dot" aria-hidden />
+            About Me
+          </button>
+        </Html>
         <Cloud position={[-14, 6, -16]} scale={2.2} speed={0.04} reducedMotion={reducedMotion} />
         <Cloud position={[16, 8, -20]} scale={2.8} speed={0.03} reducedMotion={reducedMotion} />
         <Cloud position={[2, -7, -14]} scale={2} speed={0.05} reducedMotion={reducedMotion} />

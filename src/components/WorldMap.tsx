@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 const WorldScene = lazy(() => import("./world/WorldScene"));
@@ -40,6 +40,8 @@ export function WorldMap({ onHome }: { onHome: () => void }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [ready, setReady] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const openAbout = useCallback(() => setAboutOpen(true), []);
+  const markReady = useCallback(() => setReady(true), []);
 
   useEffect(() => {
     setSupported(hasWebGL());
@@ -63,7 +65,7 @@ export function WorldMap({ onHome }: { onHome: () => void }) {
         {supported && (
           <SceneBoundary fallback={<Fallback />}>
             <Suspense fallback={null}>
-              <WorldScene reducedMotion={reducedMotion} onOpenAbout={() => setAboutOpen(true)} onReady={() => setReady(true)} />
+              <WorldScene reducedMotion={reducedMotion} onOpenAbout={openAbout} onReady={markReady} />
             </Suspense>
           </SceneBoundary>
         )}
