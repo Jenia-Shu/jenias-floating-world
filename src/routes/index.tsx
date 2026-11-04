@@ -1,24 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Welcome } from "@/components/Welcome";
+import { WorldMap } from "@/components/WorldMap";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Jenia's World" },
+      { name: "description", content: "Welcome to Jenia's World — a small floating archipelago to explore." },
+      { property: "og:title", content: "Jenia's World" },
+      { property: "og:description", content: "Welcome to Jenia's World — a small floating archipelago to explore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const [stage, setStage] = useState<"welcome" | "leaving" | "world">("welcome");
+
+  useEffect(() => {
+    // warm up the 3D chunk while the visitor reads the welcome screen
+    void import("@/components/world/WorldScene");
+  }, []);
+
+  if (stage === "world") return <WorldMap onHome={() => setStage("welcome")} />;
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <Welcome
+      leaving={stage === "leaving"}
+      onEnter={() => {
+        setStage("leaving");
+        setTimeout(() => setStage("world"), 650);
+      }}
+    />
   );
 }
