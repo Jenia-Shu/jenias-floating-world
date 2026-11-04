@@ -77,7 +77,7 @@ function StreamAndFall({ reducedMotion }: { reducedMotion?: boolean | undefined 
     return g;
   }, []);
   const endY = Math.min(WATER_LEVEL, baseHeight(E.x, E.z, BASE) - 0.18);
-  const fallH = 3.2;
+  const fallH = 2.4;
 
   useFrame((_, dt) => {
     if (!reducedMotion) tex.offset.y += Math.min(dt, 0.05) * 0.6;
@@ -97,8 +97,8 @@ function StreamAndFall({ reducedMotion }: { reducedMotion?: boolean | undefined 
       </mesh>
       {/* mist at the bottom of the fall */}
       <mesh position={[E.x + DIR.x * 0.15, endY - fallH, E.z + DIR.z * 0.15]}>
-        <sphereGeometry args={[0.35, 16, 10]} />
-        <meshStandardMaterial color="#ffffff" transparent opacity={0.45} roughness={1} />
+        <sphereGeometry args={[0.22, 16, 10]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.3} roughness={1} />
       </mesh>
     </group>
   );

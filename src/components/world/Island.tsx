@@ -21,7 +21,7 @@ function buildGrass(s: IslandShape, color: string) {
     let y = surfaceHeight(x, z, s);
     // soft rounded lip rolling over the rock edge
     const lip = Math.max(0, (d - 0.9) / 0.1);
-    y -= 0.16 * lip * lip;
+    y -= 0.3 * lip * lip;
     pos.setXYZ(i, x * (1 + 0.015 * lip), y, z * (1 + 0.015 * lip));
     const n = noise2(x * 1.7, z * 1.7, s.seed + 4);
     tmp.copy(base).offsetHSL(0.01 * n, 0.03 * n, 0.05 * n + 0.04 * (1 - d) - 0.05 * lip);
@@ -42,7 +42,7 @@ function buildRock(s: IslandShape, muted: boolean) {
   for (let i = 0; i < pos.count; i++) {
     const vx = pos.getX(i);
     const vz = pos.getZ(i);
-    const t = Math.min(1, -pos.getY(i));
+    const t = Math.min(1, Math.max(0, -pos.getY(i)));
     const th = Math.atan2(vz, vx);
     const R = shapeRadius(th, s) * 0.985;
     const n = noise2(Math.cos(th) * 3, Math.sin(th) * 3 + t * 4, s.seed + 9);
@@ -50,7 +50,7 @@ function buildRock(s: IslandShape, muted: boolean) {
     const strata = 1 + 0.04 * Math.sin(t * 30 + n * 2.5) + 0.07 * n;
     const r = R * profile * strata;
     const dir = Math.hypot(vx, vz) || 1;
-    pos.setXYZ(i, (vx / dir) * r, -t * s.depth - 0.02, (vz / dir) * r);
+    pos.setXYZ(i, (vx / dir) * r, -t * s.depth + 0.04, (vz / dir) * r);
     const band = Math.floor(t * 7 + 0.7 * Math.sin(th * 3 + s.seed) + n * 0.6);
     const c = t < 0.07 ? pal[0]! : pal[((band % pal.length) + pal.length) % pal.length]!;
     tmp.copy(c).offsetHSL(0, 0, n * 0.04 - t * 0.08);
@@ -106,7 +106,7 @@ export function Island({ shape, position, grass, muted, bobPhase = 0, reducedMot
         : {})}
     >
       <mesh geometry={grassGeo} receiveShadow castShadow>
-        <meshStandardMaterial vertexColors roughness={0.92} />
+        <meshStandardMaterial vertexColors roughness={0.92} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={rockGeo} castShadow receiveShadow>
         <meshStandardMaterial vertexColors roughness={0.95} />
