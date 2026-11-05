@@ -126,24 +126,24 @@ export function GalleryPage({ seen, onClose, onDone, onHome }: Props) {
               return (
                 <CarouselItem
                   key={p.id}
-                  className="flex basis-[80%] justify-center pl-4 sm:basis-[46%] sm:pl-6 lg:basis-[32%] xl:basis-[25%]"
+                  className="flex h-[52vh] basis-[80%] justify-center pl-4 sm:basis-[50%] sm:pl-6 lg:basis-[34%] xl:basis-[27%]"
                 >
                   <button
                     type="button"
                     onClick={() => setOpened(i)}
                     aria-label={`${zh ? "第" : "Plate "}${i + 1}${zh ? "幅" : ""}`}
-                    className="group relative block cursor-pointer transition-[transform,filter] duration-500 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#a8813f]"
-                    style={
-                      a
-                        ? {
-                            aspectRatio: `${a.w} / ${a.h}`,
-                            // the frame keeps the painting's shape, but never
-                            // grows taller than the wall it hangs on
-                            width: `min(100%, calc(52vh * ${a.w / a.h}))`,
-                          }
-                        : { aspectRatio: "4 / 3", width: "100%" }
-                    }
+                    className="group flex h-full w-full cursor-pointer flex-col items-center justify-end focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#a8813f]"
                   >
+                    {/* the frame sits on the label line, so every label on the
+                        wall lands on the same baseline whatever the shape */}
+                    <span className="flex min-h-0 w-full flex-1 items-end justify-center">
+                      <span
+                        className="relative block transition-transform duration-500 group-hover:-translate-y-1"
+                        style={{
+                          aspectRatio: a ? `${a.w} / ${a.h}` : "4 / 3",
+                          width: a ? `min(100%, calc(46vh * ${a.w / a.h}))` : "100%",
+                        }}
+                      >
                     {/* gilded frame, then a linen mat, then the painting */}
                     <span
                       aria-hidden
@@ -165,6 +165,24 @@ export function GalleryPage({ seen, onClose, onDone, onHome }: Props) {
                       aria-hidden
                       className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.35),transparent_58%)]"
                     />
+                      </span>
+                    </span>
+
+                    {/* the wall label: when it happened, and what that stretch was */}
+                    <span className="block shrink-0 pt-3 text-center sm:pt-4">
+                      <span
+                        className="block font-mono text-[0.62rem] tabular-nums tracking-[0.16em]"
+                        style={{ color: MUTE }}
+                      >
+                        {p.date}
+                      </span>
+                      <span
+                        className="mt-1 block text-[0.92rem] font-semibold tracking-[0.08em]"
+                        style={{ color: INK }}
+                      >
+                        {pick(lang, p.tag.en, p.tag.zh)}
+                      </span>
+                    </span>
                   </button>
                 </CarouselItem>
               );

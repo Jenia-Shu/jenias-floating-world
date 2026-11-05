@@ -7,6 +7,8 @@ export type Plate = {
   /** Jenia's own words, kept as written. The English side is a translation. */
   quote?: { en: string; zh: string };
   note?: { en: string; zh: string };
+  /** Two or three characters for the label under the frame. */
+  tag: { en: string; zh: string };
 };
 
 /**
@@ -17,6 +19,8 @@ export type Plate = {
 export const PLATES: Plate[] = [
   {
     id: "letter",
+    /** Two or three characters for the wall label. */
+    tag: { en: "A letter", zh: "一封信" },
     date: "2025.08.23",
     title: { en: "A letter to myself, three years on", zh: "《至三年后的我》" },
     role: { en: "Time capsule", zh: "时间胶囊" },
@@ -28,6 +32,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "monitor",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Election", zh: "竞选" },
     date: "2025.09.10",
     title: { en: "Elected class monitor", zh: "竞选班长 → 高一 1 班班长" },
     role: { en: "Class monitor, Grade 10-1", zh: "班长 · 高一 1 班" },
@@ -38,6 +44,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "essays",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Essays", zh: "随笔" },
     date: "2025.09.29",
     title: { en: "Two essays from the first weeks", zh: "《宇宙大戏》《初到枫叶的日子》" },
     role: { en: "Essays", zh: "随笔" },
@@ -45,6 +53,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "sharing",
+    /** Two or three characters for the wall label. */
+    tag: { en: "A talk", zh: "分享" },
     date: "2025.10.13–15",
     title: {
       en: "Middle-school talk: freedom and self-discipline",
@@ -58,6 +68,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "expo",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Expo", zh: "志愿者" },
     date: "2025.11.18–19",
     title: { en: "Volunteer lead at the Education Expo", zh: "教育博览会礼仪志愿者组长" },
     role: { en: "Group lead — the only one in Grade 10", zh: "组长 · 高一唯一" },
@@ -68,6 +80,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "newsletter",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Newsletter", zh: "团课" },
     date: "2025.11.26",
     title: { en: "League newsletter, issue nine", zh: "第九期团课简报" },
     role: { en: "Youth League committee", zh: "校团委" },
@@ -78,6 +92,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "semester",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Summary", zh: "总结" },
     date: "2026.01.18",
     title: { en: "A summary of the first semester", zh: "高一上总结" },
     role: { en: "Class monitor", zh: "班长" },
@@ -88,6 +104,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "prep",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Prep", zh: "准备" },
     date: "2026.04.13–05.09",
     title: { en: "Getting ready to run", zh: "竞选准备：三份材料" },
     role: { en: "Candidate", zh: "竞选人" },
@@ -98,6 +116,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "campaign",
+    /** Two or three characters for the wall label. */
+    tag: { en: "The speech", zh: "演讲" },
     date: "2026.05.13–18",
     title: { en: "Running for head of the Study Department", zh: "学习部部长竞选" },
     role: { en: "Candidate · speaker · video", zh: "竞选人 · 主讲 · 视频主创" },
@@ -108,6 +128,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "league",
+    /** Two or three characters for the wall label. */
+    tag: { en: "League", zh: "入团" },
     date: "2026.05.20–26",
     title: { en: "Joining the Youth League, speaking for the new members", zh: "入团仪式 · 新团员代表发言" },
     role: { en: "New-member representative", zh: "新团员代表" },
@@ -115,6 +137,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "script",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Script", zh: "剧本" },
     date: "2026.05.25–06.07",
     title: { en: "Fifty Years — four drafts of a script", zh: "《五十年》剧本四版" },
     role: { en: "Project lead", zh: "项目负责人" },
@@ -125,6 +149,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "egg",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Egg diary", zh: "养蛋" },
     date: "2026.06.03",
     title: { en: "A Day in the Life — EGG", zh: "《A Day in the Life——EGG》" },
     role: { en: "All in English", zh: "全英文创作" },
@@ -135,6 +161,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "opening",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Opening night", zh: "开演" },
     date: "2026.06.22–23",
     title: { en: "Fifty Years opens", zh: "《五十年》开演" },
     role: { en: "Project lead", zh: "项目负责人" },
@@ -145,6 +173,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "core",
+    /** Two or three characters for the wall label. */
+    tag: { en: "The core", zh: "进核心" },
     date: "2026.08.28",
     title: { en: "Into the student-union core", zh: "进入学生会核心" },
     role: { en: "Head of the Study Department", zh: "学习部部长" },
@@ -156,6 +186,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "zel",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Running again", zh: "再选" },
     date: "2026.09.07",
     title: { en: "Running for the Zhou Enlai class lead", zh: "竞选周恩来班班长" },
     role: { en: "Candidate", zh: "竞选人" },
@@ -163,6 +195,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "department",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Building a team", zh: "建部" },
     date: "2026.09.08",
     title: { en: "Building my own department", zh: "组建自己的学习部" },
     role: { en: "Head of the Study Department", zh: "学习部部长" },
@@ -173,6 +207,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "halloween",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Halloween", zh: "策划" },
     date: "2026.09.16",
     title: { en: "Halloween, with the presidium", zh: "协助主席团策划万圣节" },
     role: { en: "Planning", zh: "策划" },
@@ -182,27 +218,9 @@ export const PLATES: Plate[] = [
     },
   },
   {
-    id: "talk-again",
-    date: "2026.10.08–11",
-    title: { en: "The middle-school talk, one year later", zh: "初中部宣讲《课堂之外》" },
-    role: { en: "Speaker · department head", zh: "主讲 · 部长" },
-    quote: {
-      en: "Wait — the head still does the work?! Fine, but I hope this is the last time!!!",
-      zh: "什么？？部长还要打工？？好吧，我希望这是最后一次！！！",
-    },
-  },
-  {
-    id: "booths",
-    date: "2026.10.17–18",
-    title: { en: "Two Halloween booths", zh: "万圣节两个摊位" },
-    role: { en: "Planning · budget", zh: "策划 · 预算" },
-    quote: {
-      en: "I love these two booths — and my members invented both of them.",
-      zh: "这两个摊位我很喜欢，而且都是我部员自己想的。很有特色！！！",
-    },
-  },
-  {
     id: "debate-start",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Kick-off", zh: "启动" },
     date: "2026.10.07",
     title: { en: "The third Chinese debate cup begins", zh: "第三届中文辩论赛启动" },
     role: { en: "Organiser", zh: "组织者" },
@@ -212,14 +230,42 @@ export const PLATES: Plate[] = [
     },
   },
   {
+    id: "talk-again",
+    /** Two or three characters for the wall label. */
+    tag: { en: "The talk", zh: "宣讲" },
+    date: "2026.10.08–11",
+    title: { en: "The middle-school talk, one year later", zh: "初中部宣讲《课堂之外》" },
+    role: { en: "Speaker · department head", zh: "主讲 · 部长" },
+    quote: {
+      en: "Wait — the head still does the work?! Fine, but I hope this is the last time!!!",
+      zh: "什么？？部长还要打工？？好吧，我希望这是最后一次！！！",
+    },
+  },
+  {
     id: "debate-lead",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Taking over", zh: "接手" },
     date: "2026.10.14",
     title: { en: "Taking over as the person in charge", zh: "正式接手总负责人" },
     role: { en: "Overall lead", zh: "总负责人" },
     quote: { en: "I officially took over.", zh: "正式接手总负责人一职。" },
   },
   {
+    id: "booths",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Two booths", zh: "摊位" },
+    date: "2026.10.17–18",
+    title: { en: "Two Halloween booths", zh: "万圣节两个摊位" },
+    role: { en: "Planning · budget", zh: "策划 · 预算" },
+    quote: {
+      en: "I love these two booths — and my members invented both of them.",
+      zh: "这两个摊位我很喜欢，而且都是我部员自己想的。很有特色！！！",
+    },
+  },
+  {
     id: "debate-work",
+    /** Two or three characters for the wall label. */
+    tag: { en: "The grind", zh: "跟进" },
     date: "2026.10.19–11.02",
     title: { en: "Rebuilding the deck, week after week", zh: "物料一路更新" },
     role: { en: "Overall lead", zh: "总负责人" },
@@ -234,6 +280,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "debate-show",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Showcase", zh: "开赛" },
     date: "2026.11.03",
     title: { en: "The showcase goes off", zh: "表演赛落地" },
     role: { en: "Overall lead", zh: "总负责人" },
@@ -244,7 +292,9 @@ export const PLATES: Plate[] = [
   },
   {
     id: "closing",
-    date: "—",
+    /** Two or three characters for the wall label. */
+    tag: { en: "What I hoped", zh: "心愿" },
+    date: "2026.11",
     title: { en: "What I wanted people to see", zh: "我最想让人看到的" },
     role: { en: "After the debate cup", zh: "辩论赛之后" },
     quote: {
@@ -254,6 +304,8 @@ export const PLATES: Plate[] = [
   },
   {
     id: "now",
+    /** Two or three characters for the wall label. */
+    tag: { en: "Right now", zh: "现在" },
     date: "2026.11",
     title: { en: "Education Expo, round two", zh: "第二次教育博览会" },
     role: { en: "Head of all volunteers · in progress", zh: "总志愿者负责人 · 筹备中" },
