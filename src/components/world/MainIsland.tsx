@@ -3,6 +3,8 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Island } from "./Island";
 import { Cottage, Flowers, Mushroom, PathStones, Rock, Tree } from "./details";
+import { Grow } from "./Grow";
+import { Birds, Butterflies, Ducks, Rabbits, Squirrels } from "./creatures";
 import { baseHeight, shapeRadius, surfaceHeight, type IslandShape } from "@/lib/world/terrain";
 
 const P = { x: 2.0, z: 1.4 };
@@ -27,6 +29,17 @@ const hash = (n: number) => {
   const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
   return s - Math.floor(s);
 };
+
+// ground animals live on the meadow, clear of the pond, cottage and stone path
+const RABBIT_SPOTS: [number, number, number][] = [
+  [-2.6, 0.4, 0],
+  [1.2, -1.6, 0],
+  [-0.6, 3.0, 0],
+];
+const SQUIRREL_SPOTS: [number, number, number][] = [
+  [3.5, -0.8, 0],
+  [-3.2, -2.2, 0],
+];
 
 function distToSeg(x: number, z: number, a: { x: number; z: number }, b: { x: number; z: number }) {
   const vx = b.x - a.x, vz = b.z - a.z;
@@ -135,14 +148,25 @@ function Bridge() {
   );
 }
 
+/** Bare-scrub rocks shown before the region has been visited. */
+const BARE_ROCKS: { p: [number, number, number]; s: number; r: number }[] = [
+  { p: [-1.9, 0, 0.7], s: 0.3, r: 1 },
+  { p: [1.1, 0, -1.6], s: 0.22, r: 2 },
+  { p: [0.3, 0, 2.3], s: 0.16, r: 3 },
+  { p: [-2.6, 0, -1.5], s: 0.13, r: 0 },
+  { p: [2.9, 0, 1.9], s: 0.11, r: 1 },
+];
+
 type Props = {
   reducedMotion?: boolean | undefined;
   onOpen: () => void;
   hovered: boolean;
   setHovered: (h: boolean) => void;
+  /** When false the island is bare rock; visiting About Me brings it to life. */
+  revealed: boolean;
 };
 
-export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props) {
+export function MainIsland({ reducedMotion, onOpen, hovered, setHovered, revealed }: Props) {
   const cottage = { x: -1.7, z: -1.1, rot: 0.55 };
   const ring = useRef<THREE.Mesh>(null);
 
@@ -220,6 +244,13 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props
     return { stones, trees, flowers, mushrooms, rocks };
   }, [cottage.x, cottage.z, cottage.rot]);
 
+  const butterflyAnchors = useMemo<[number, number, number][]>(() => {
+    const pts = layout.flowers;
+    if (pts.length < 4) return [];
+    const picks = [0, Math.floor(pts.length / 3), Math.floor((pts.length * 2) / 3), pts.length - 1];
+    return picks.map((i) => pts[i]!.p);
+  }, [layout.flowers]);
+
   useFrame(({ clock }) => {
     if (!ring.current) return;
     const m = ring.current.material as THREE.MeshBasicMaterial;
@@ -230,7 +261,7 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props
     <Island
       shape={MAIN_SHAPE}
       position={[0, 0, 0]}
-      grass="#9cc58a"
+      grass={revealed ? "#9cc58a" : "#b7c2ae"}
       bobPhase={0}
       reducedMotion={reducedMotion}
       onSelect={onOpen}
@@ -242,27 +273,68 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered }: Props
         <meshBasicMaterial color="#e6cf98" transparent opacity={0.3} depthWrite={false} />
       </mesh>
 
-      <Cottage position={[cottage.x, h(cottage.x, cottage.z) - 0.04, cottage.z]} rotation={cottage.rot} />
+      {!revealed && (
+        <>
+          {BARE_ROCKS.map((r, i) => (
+            <Grow key={i} position={[r.p[0], h(r.p[0], r.p[2]), r.p[2]]} reducedMotion={reducedMotion}>
+              <Rock position={[0, 0, 0]} scale={r.s} rot={r.r} />
+            </Grow>
+          ))}
+        </>
+      )}
 
-      <mesh position={[P.x, WATER_LEVEL, P.z]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.9, 1]} receiveShadow>
-        <circleGeometry args={[1.05, 40]} />
-        <meshStandardMaterial color="#9fcbe0" roughness={0.12} metalness={0.15} transparent opacity={0.9} />
-      </mesh>
-      <StreamAndFall reducedMotion={reducedMotion} />
-      <Bridge />
+      {revealed && (
+        <>
+          <Grow position={[cottage.x, h(cottage.x, cottage.z) - 0.04, cottage.z]} reducedMotion={reducedMotion}>
+            <Cottage position={[0, 0, 0]} rotation={cottage.rot} />
+          </Grow>
 
-      <PathStones points={layout.stones} />
-      {layout.trees.map((t) => (
-        <Tree key={t.v} position={t.p} scale={t.s} variant={t.v} />
-      ))}
-      <Flowers points={layout.flowers} />
-      {layout.mushrooms.map((m, i) => (
-        <Mushroom key={i} position={m.p} cream={m.cream} />
-      ))}
-      {layout.rocks.map((r, i) => (
-        <Rock key={i} position={r.p} scale={r.s} rot={r.r} />
-      ))}
+          <Grow position={[P.x, WATER_LEVEL, P.z]} reducedMotion={reducedMotion}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.9, 1]} receiveShadow>
+              <circleGeometry args={[1.05, 40]} />
+              <meshStandardMaterial color="#9fcbe0" roughness={0.12} metalness={0.15} transparent opacity={0.9} />
+            </mesh>
+          </Grow>
 
+          <Grow reducedMotion={reducedMotion}>
+            <StreamAndFall reducedMotion={reducedMotion} />
+          </Grow>
+          <Grow reducedMotion={reducedMotion}>
+            <Bridge />
+          </Grow>
+          <Grow reducedMotion={reducedMotion}>
+            <PathStones points={layout.stones} />
+          </Grow>
+
+          {layout.trees.map((t) => (
+            <Grow key={t.v} position={t.p} reducedMotion={reducedMotion}>
+              <Tree position={[0, 0, 0]} scale={t.s} variant={t.v} />
+            </Grow>
+          ))}
+
+          <Grow reducedMotion={reducedMotion}>
+            <Flowers points={layout.flowers} />
+          </Grow>
+
+          {layout.mushrooms.map((m, i) => (
+            <Grow key={i} position={m.p} reducedMotion={reducedMotion}>
+              <Mushroom position={[0, 0, 0]} cream={m.cream} />
+            </Grow>
+          ))}
+
+          {layout.rocks.map((r, i) => (
+            <Grow key={i} position={r.p} reducedMotion={reducedMotion}>
+              <Rock position={[0, 0, 0]} scale={r.s} rot={r.r} />
+            </Grow>
+          ))}
+
+          <Birds reducedMotion={reducedMotion} />
+          <Butterflies anchors={butterflyAnchors} ground={h} reducedMotion={reducedMotion} />
+          <Rabbits anchors={RABBIT_SPOTS} ground={h} reducedMotion={reducedMotion} />
+          <Squirrels anchors={SQUIRREL_SPOTS} ground={h} reducedMotion={reducedMotion} />
+          <Ducks center={[P.x, WATER_LEVEL, P.z]} radius={0.62} reducedMotion={reducedMotion} />
+        </>
+      )}
     </Island>
   );
 }

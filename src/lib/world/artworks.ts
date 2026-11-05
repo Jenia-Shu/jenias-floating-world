@@ -1,0 +1,217 @@
+export type Artwork = {
+  /** Public-domain painting hung for this moment. */
+  src: string;
+  title: string;
+  artist: string;
+  year: string;
+  w: number;
+  h: number;
+};
+
+/**
+ * One public-domain painting per plate, chosen for mood rather than subject:
+ * soft skies, water and blossom, nothing with people in it. All PD / CC0 -
+ * fetched from Wikimedia Commons, credits kept so they can be shown.
+ */
+export const ART: Record<string, Artwork> = {
+  "letter": {
+    src: "/gallery/letter.jpg",
+    title: "Water Lilies",
+    artist: "Claude Monet",
+    year: "1922",
+    w: 1100,
+    h: 1033,
+  },
+  "monitor": {
+    src: "/gallery/monitor.jpg",
+    title: "Louveciennes, Chemin de Creux",
+    artist: "Camille Pissarro",
+    year: "1872",
+    w: 1100,
+    h: 917,
+  },
+  "essays": {
+    src: "/gallery/essays.jpg",
+    title: "Charing Cross Bridge",
+    artist: "Claude Monet",
+    year: "1899\u20131901",
+    w: 1100,
+    h: 887,
+  },
+  "sharing": {
+    src: "/gallery/sharing.jpg",
+    title: "La Seine \u00e0 Suresnes",
+    artist: "Alfred Sisley",
+    year: "1877",
+    w: 1100,
+    h: 891,
+  },
+  "expo": {
+    src: "/gallery/expo.jpg",
+    title: "Sea View",
+    artist: "J. M. W. Turner",
+    year: "1820s",
+    w: 956,
+    h: 640,
+  },
+  "newsletter": {
+    src: "/gallery/newsletter.jpg",
+    title: "Nocturne: Blue and Silver - Chelsea",
+    artist: "James McNeill Whistler",
+    year: "1871",
+    w: 1100,
+    h: 902,
+  },
+  "semester": {
+    src: "/gallery/semester.jpg",
+    title: "Champ de coquelicots",
+    artist: "Claude Monet",
+    year: "1881",
+    w: 1100,
+    h: 804,
+  },
+  "prep": {
+    src: "/gallery/prep.jpg",
+    title: "Orchard in Blossom",
+    artist: "Camille Pissarro",
+    year: "1876",
+    w: 813,
+    h: 531,
+  },
+  "campaign": {
+    src: "/gallery/campaign.jpg",
+    title: "Almond Blossom",
+    artist: "Vincent van Gogh",
+    year: "1890",
+    w: 1100,
+    h: 869,
+  },
+  "league": {
+    src: "/gallery/league.jpg",
+    title: "South Wind, Clear Sky",
+    artist: "Katsushika Hokusai",
+    year: "c. 1830",
+    w: 1100,
+    h: 755,
+  },
+  "script": {
+    src: "/gallery/script.jpg",
+    title: "The Japanese Footbridge",
+    artist: "Claude Monet",
+    year: "1899",
+    w: 1100,
+    h: 887,
+  },
+  "egg": {
+    src: "/gallery/egg.jpg",
+    title: "Plum Garden, Kameido",
+    artist: "Utagawa Hiroshige",
+    year: "1857",
+    w: 1100,
+    h: 1612,
+  },
+  "opening": {
+    src: "/gallery/opening.jpg",
+    title: "Landscape",
+    artist: "Caspar David Friedrich",
+    year: "1816\u201317",
+    w: 1100,
+    h: 1426,
+  },
+  "core": {
+    src: "/gallery/core.jpg",
+    title: "Poppy Field",
+    artist: "Claude Monet",
+    year: "1890",
+    w: 1100,
+    h: 706,
+  },
+  "zel": {
+    src: "/gallery/zel.jpg",
+    title: "Interior",
+    artist: "Vilhelm Hammersh\u00f8i",
+    year: "1890",
+    w: 1100,
+    h: 1366,
+  },
+  "department": {
+    src: "/gallery/department.jpg",
+    title: "Blumenwiese Blossoming Meadow",
+    artist: "Gustav Klimt",
+    year: "1908",
+    w: 1100,
+    h: 1111,
+  },
+  "halloween": {
+    src: "/gallery/halloween.jpg",
+    title: "Irises",
+    artist: "Vincent van Gogh",
+    year: "1889",
+    w: 1100,
+    h: 840,
+  },
+  "talk-again": {
+    src: "/gallery/talk-again.jpg",
+    title: "Attersee",
+    artist: "Gustav Klimt",
+    year: "1900",
+    w: 1100,
+    h: 1102,
+  },
+  "booths": {
+    src: "/gallery/booths.jpg",
+    title: "Wheat Field with Cypresses",
+    artist: "Vincent van Gogh",
+    year: "1889",
+    w: 1100,
+    h: 875,
+  },
+  "debate-start": {
+    src: "/gallery/debate-start.jpg",
+    title: "Impression, Sunrise",
+    artist: "Claude Monet",
+    year: "1872",
+    w: 1051,
+    h: 808,
+  },
+  "debate-lead": {
+    src: "/gallery/debate-lead.jpg",
+    title: "Moon Pine, Ueno",
+    artist: "Utagawa Hiroshige",
+    year: "1856",
+    w: 787,
+    h: 1200,
+  },
+  "debate-work": {
+    src: "/gallery/debate-work.jpg",
+    title: "Autumn: Banks of the Seine near Bougival",
+    artist: "Alfred Sisley",
+    year: "1873",
+    w: 1100,
+    h: 824,
+  },
+  "debate-show": {
+    src: "/gallery/debate-show.jpg",
+    title: "Plum Park in Kameido",
+    artist: "Utagawa Hiroshige",
+    year: "1857",
+    w: 1100,
+    h: 1600,
+  },
+  "closing": {
+    src: "/gallery/closing.jpg",
+    title: "Snow at Louveciennes",
+    artist: "Camille Pissarro",
+    year: "c. 1870",
+    w: 1100,
+    h: 724,
+  },
+  "now": {
+    src: "/gallery/now.jpg",
+    title: "Green Field",
+    artist: "Vincent van Gogh",
+    year: "1889",
+    w: 1100,
+    h: 903,
+  },
+};

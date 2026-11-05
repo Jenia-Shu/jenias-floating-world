@@ -12,4 +12,12 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    optimizeDeps: {
+      // The 3D stack is a deep module tree. Pre-bundling it turns hundreds of
+      // dev-server requests into one file, which is the difference between
+      // "the islands appear" and "the islands never arrive" on a modest machine.
+      include: ["three", "@react-three/fiber", "@react-three/drei"],
+    },
+  },
 });
