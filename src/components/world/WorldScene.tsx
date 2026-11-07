@@ -9,7 +9,7 @@ import { MainIsland } from "./MainIsland";
 import { Cloud, Flowers, LockMarker, Mushroom, Rock, Tree } from "./details";
 import { Grow } from "./Grow";
 import { ShadowTicker } from "./ShadowTicker";
-import { Collie } from "./collie";
+import { Collie, GUIDE_SPOT } from "./collie";
 import { FrameCap } from "@/components/FrameCap";
 import { IslandTheme } from "./islands";
 import { CollieDelivery } from "./CollieDelivery";
@@ -43,7 +43,13 @@ const FOCUS_S = 1.1;
 type FocusPoint = { pos: readonly [number, number, number]; radius: number };
 
 /** A one-off camera framing, in world space. */
-export type CameraCue = { pos: readonly [number, number, number]; target: readonly [number, number, number]; dur?: number };
+export type CameraCue = {
+  pos: readonly [number, number, number];
+  target: readonly [number, number, number];
+  dur?: number;
+  /** OrbitControls' floor has to come down with a close-up, or it pushes the camera back out. */
+  minDistance?: number;
+};
 
 function CameraRig({
   reducedMotion,
@@ -94,6 +100,7 @@ function CameraRig({
             pos: new THREE.Vector3(cue.pos[0], cue.pos[1], cue.pos[2]),
             target: new THREE.Vector3(cue.target[0], cue.target[1], cue.target[2]),
             dur: cue.dur,
+            minDistance: cue.minDistance ?? 3,
           }
         : null,
     [cue],
@@ -166,7 +173,7 @@ function CameraRig({
   // to come down with them.
   useEffect(() => {
     if (!controls) return;
-    controls.minDistance = cueView || peekView ? 3 : 8;
+    controls.minDistance = cueView ? cueView.minDistance : peekView ? 3 : 8;
   }, [controls, cueView, peekView]);
 
   useEffect(() => {
@@ -201,8 +208,16 @@ type LabelTarget = { el: HTMLElement | null; world: THREE.Vector3; bob: number }
 /** Framing for the bottle delivery on the Message Island: the collie and the tide pool. */
 const DELIVERY_CAMERA: CameraCue = { pos: [14.2, 0.25, 7.05], target: [13.2, -1.05, 4.15], dur: 1.5 };
 
-/** First-visit guide: lean onto the princess (the border collie) on the home island. */
-const GUIDE_CAMERA: CameraCue = { pos: [2.6, 1.5, 3.4], target: [0, 0.55, 0], dur: 1.6 };
+/**
+ * First-visit guide: a close-up on Princess herself. She waits at GUIDE_SPOT
+ * while the dialogue runs, so this frames the dog rather than an empty meadow.
+ */
+const GUIDE_CAMERA: CameraCue = {
+  pos: [GUIDE_SPOT.x + 1.25, GUIDE_SPOT.y + 1.05, GUIDE_SPOT.z + 2.0],
+  target: [GUIDE_SPOT.x, GUIDE_SPOT.y + 0.08, GUIDE_SPOT.z],
+  dur: 1.6,
+  minDistance: 1.8,
+};
 
 /** Projects world points to screen each frame and positions plain DOM labels. */
 function LabelProjector({
@@ -877,12 +892,15 @@ export default function WorldScene({
             revealed={!onboarding}
             onEgg={onEgg}
           />
+          {/* The Message Island is not part of the visit order, but it has its
+              own small one: bare like every other island at the start, then it
+              grows in by itself once Collections has been explored. */}
           {REGIONS_3D.map((r) => (
             <RegionIsland
               key={r.id}
               data={r}
               unlocked={isUnlocked(r.id, visited)}
-              built={r.id === "community" || visited.includes(r.id)}
+              built={r.id === "community" ? visited.includes("collections") : visited.includes(r.id)}
               reducedMotion={reducedMotion}
               onSelect={() => focusIsland(r.id)}
               onHover={setHovered}
@@ -905,7 +923,7 @@ export default function WorldScene({
           )}
           <SteppingRocks />
           {(onboarding || (!cine && !(bottleFloating && bottleUnread))) && (
-            <Collie reducedMotion={reducedMotion} onFound={onAnimal} onPoke={onColliePoke} />
+            <Collie reducedMotion={reducedMotion} onFound={onAnimal} onPoke={onColliePoke} stay={onboarding} />
           )}
           <Cloud position={[-14, 6, -16]} scale={2.2} speed={0.04} reducedMotion={reducedMotion} />
           <Cloud position={[16, 8, -20]} scale={2.8} speed={0.03} reducedMotion={reducedMotion} />

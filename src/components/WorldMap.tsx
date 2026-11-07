@@ -327,8 +327,9 @@ export function WorldMap({
   });
 
   const markReady = useCallback(() => setPhase("ready"), []);
-  // Dismiss the guide: remember it for next time (unless previewing with
-  // ?onboard=force), grow the home island, and hand the world back to the visitor.
+  // The last line of the guide opens My World directly. Closing the guide used
+  // to fly the camera back to the overview and grow the home island in full
+  // view, which read as a jarring jump; the page now covers that beat entirely.
   const finishOnboarding = useCallback(() => {
     if (new URLSearchParams(window.location.search).get("onboard") !== "force") {
       try {
@@ -339,6 +340,7 @@ export function WorldMap({
     }
     setVisited((prev) => (prev.includes("about") ? prev : [...prev, "about"]));
     setOnboarding(false);
+    setOpenId("about");
   }, []);
   // The Message Island has no chapter page. Its 3D label zooms into the island
   // so the bottle can be tapped again; the no-WebGL fallback list opens the

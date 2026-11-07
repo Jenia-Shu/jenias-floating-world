@@ -79,7 +79,7 @@ export function GuideDialogue({ active, lang, reducedMotion, onFinish }: Props) 
             }}
             className="rounded-full bg-foreground px-4 py-1.5 text-[0.72rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85"
           >
-            {isLast ? t("Start exploring →", "开始探索 →") : t("Continue →", "继续 →")}
+            {isLast ? t("Enter My World →", "进入我的世界 →") : t("Continue →", "继续 →")}
           </button>
         </div>
       </div>

@@ -40,6 +40,20 @@ type Seg = { a: THREE.Vector3; b: THREE.Vector3; air: boolean; dwell: number; le
 const onMain = (x: number, z: number) => surfaceHeight(x, z, MAIN) + 0.03;
 
 /**
+ * Where Princess waits while the opening guide speaks. Exporting the spot lets
+ * the guide camera frame exactly the same place, so she stays in the shot
+ * instead of wandering off mid-sentence. The home island's pond sits near
+ * (2, 1.4), so she waits on the other side of it.
+ */
+export const GUIDE_SPOT = {
+  x: -0.6,
+  z: 1.5,
+  y: onMain(-0.6, 1.5),
+  /** Facing the guide camera, which sits at +x / +z from here. */
+  yaw: Math.atan2(1.25, 2.0),
+};
+
+/**
  * One closed tour: centre → home edge → over the stones → a lap around a
  * satellite → over the stones → back. Segments are walked in order and the dog
  * pauses at the end of each one, which keeps it from ever sliding.
@@ -195,9 +209,14 @@ type Props = {
   onFound: () => void;
   /** Every click, with where the dog stood: the camera frames her for a moment. */
   onPoke?: ((at: { x: number; y: number; z: number }) => void) | undefined;
+  /**
+   * During the opening guide she stops touring and waits at GUIDE_SPOT, facing
+   * the camera, so the close-up is actually of her and not of an empty meadow.
+   */
+  stay?: boolean | undefined;
 };
 
-export function Collie({ reducedMotion, onFound, onPoke }: Props) {
+export function Collie({ reducedMotion, onFound, onPoke, stay = false }: Props) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -247,7 +266,7 @@ export function Collie({ reducedMotion, onFound, onPoke }: Props) {
     const t = clock.elapsedTime;
 
     const seg = route[s.seg]!;
-    const moving = s.wait <= 0 && s.greet <= 0;
+    const moving = !stay && s.wait <= 0 && s.greet <= 0;
     // A wandering dog, not a racing one: slow enough that a visitor can catch
     // up and tap it without chasing the pointer.
     const speed = 1.45;
@@ -277,14 +296,14 @@ export function Collie({ reducedMotion, onFound, onPoke }: Props) {
     const a = seg.a;
     const b = seg.b;
     const k = Math.min(1, Math.max(0, s.u));
-    const x = a.x + (b.x - a.x) * k;
-    const z = a.z + (b.z - a.z) * k;
-    let y = a.y + (b.y - a.y) * k;
-    if (seg.air) y += Math.sin(Math.PI * k) * 0.85;
+    const x = stay ? GUIDE_SPOT.x : a.x + (b.x - a.x) * k;
+    const z = stay ? GUIDE_SPOT.z : a.z + (b.z - a.z) * k;
+    let y = stay ? GUIDE_SPOT.y : a.y + (b.y - a.y) * k;
+    if (!stay && seg.air) y += Math.sin(Math.PI * k) * 0.85;
 
     g.position.set(x, y, z);
 
-    const want = Math.atan2(b.x - a.x, b.z - a.z);
+    const want = stay ? GUIDE_SPOT.yaw : Math.atan2(b.x - a.x, b.z - a.z);
     let diff = want - s.yaw;
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
