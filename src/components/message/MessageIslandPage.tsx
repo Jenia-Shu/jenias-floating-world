@@ -28,7 +28,7 @@ const SCENES = [
   {
     no: "02",
     en: "The Letter",
-    zh: "一封来自 Jenia's World 的邀请",
+    zh: "一封来自杰尼亚的邀请",
     bodyEn: "The cork pops, a rolled-up letter drifts out and unfolds in the air. It folds back into the little wooden box and can be opened again later.",
     bodyZh: "瓶塞轻轻弹开。一张卷起来的信纸慢慢飘出来，在空中展开。信纸重新折叠，放回漂流瓶旁边的小木箱里，之后能够再次打开阅读。",
   },

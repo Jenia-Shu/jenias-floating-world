@@ -6,17 +6,21 @@
  * `docs/漂流瓶岛-需求原档.md`, end of file). The English paragraphs are a
  * faithful translation of that text, written so the bilingual switch has
  * something to show — replace them if a second original is wanted.
+ *
+ * 2026-11-07 14:15: the user asked for the letter to be from Jenia the person,
+ * not from "Jenia's World" — so neither the title nor the signature carries the
+ * world's name any more.
  */
 
 export type Letter = {
   title: { en: string; zh: string };
   kicker: { en: string; zh: string };
   body: { en: string[]; zh: string[] };
-  signature: string;
+  signature: { en: string; zh: string };
 };
 
 export const LETTER: Letter = {
-  title: { en: "A LETTER FROM JENIA'S WORLD", zh: "一封来自 Jenia's World 的信" },
+  title: { en: "A LETTER FROM JENIA", zh: "一封来自杰尼亚的信" },
   kicker: { en: "Someone left you a message", zh: "有人给你留下了一封信" },
   body: {
     en: [
@@ -43,5 +47,5 @@ export const LETTER: Letter = {
       "愿你一直保有好奇心。",
     ],
   },
-  signature: "Jenia",
+  signature: { en: "Jenia", zh: "杰尼亚" },
 };

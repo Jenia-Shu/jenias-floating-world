@@ -304,7 +304,16 @@ export function WorldMap({
   const bottleStoreKey = useMemo(() => bottleKey(user), [user]);
 
   const markReady = useCallback(() => setPhase("ready"), []);
-  const openRegion = useCallback((id: string) => setOpenId(id), []);
+  // The Message Island has no chapter page. Its 3D label zooms into the island
+  // so the bottle can be tapped again; the no-WebGL fallback list opens the
+  // letter itself. Neither route should land on the old reading page.
+  const openRegion = useCallback((id: string) => {
+    if (id === "community") {
+      setLetterOpen(true);
+      return;
+    }
+    setOpenId(id);
+  }, []);
   const closePanel = useCallback(() => setOpenId(null), []);
   const retry = useCallback(() => {
     webglSupport = null; // re-probe: a failed probe is often just a spent context budget

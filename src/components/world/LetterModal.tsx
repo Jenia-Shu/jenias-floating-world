@@ -47,7 +47,9 @@ export function LetterModal({ onClose }: { onClose: () => void }) {
                 <p key={i}>{p}</p>
               ))}
             </div>
-            <p className="mt-6 text-right font-display text-2xl text-[#33404f]">— {LETTER.signature}</p>
+            <p className="mt-6 text-right font-display text-2xl text-[#33404f]">
+              — {pick(lang, LETTER.signature.en, LETTER.signature.zh)}
+            </p>
             <div className="mt-7 flex items-center justify-between gap-3 border-t border-[#8a7a60]/25 pt-4">
               <button
                 ref={closeRef}

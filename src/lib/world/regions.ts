@@ -99,7 +99,7 @@ export const REGIONS: RegionMeta[] = [
       {
         id: "letter",
         title: "The Letter",
-        body: "A letter from Jenia's World, kept in the little wooden box so it can be opened again.",
+        body: "A letter from Jenia, kept in the little wooden box so it can be opened again.",
       },
       {
         id: "post",

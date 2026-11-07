@@ -553,6 +553,8 @@ export default function WorldScene({
   const [focus, setFocus] = useState<string | null>(null);
   /** The bottle delivery: the camera holds still and the labels step aside. */
   const [cine, setCine] = useState(false);
+  /** "Read the letter" zoomed onto the Message Island — labels step aside too. */
+  const [letterView, setLetterView] = useState(false);
   const [cue, setCue] = useState<CameraCue | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
   const [introReady, setIntroReady] = useState(false);
@@ -591,16 +593,18 @@ export default function WorldScene({
   // focus — only a genuine click does.
   const press = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
-    if (!focus && !peek) return;
+    if (!focus && !peek && !letterView) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setFocus(null);
         setPeek(null);
+        setCue(null);
+        setLetterView(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focus, peek]);
+  }, [focus, peek, letterView]);
 
   // Once the first three islands are done, the Message Island delivers a bottle:
   // the camera turns to its tide pool and the collie does the rest.
@@ -623,6 +627,7 @@ export default function WorldScene({
     setCue(null);
     setFocus(null);
     setCine(false);
+    setLetterView(false);
     setResetSignal((n) => n + 1);
   }, [overviewTick]);
   const [found, setFound] = useState(false);
@@ -757,6 +762,7 @@ export default function WorldScene({
             setFocus(null);
             setPeek(null);
             setCue(null);
+            setLetterView(false);
           }
         }}
         // "default" lets the browser keep the canvas on the GPU it started on.
@@ -890,7 +896,7 @@ export default function WorldScene({
         <LabelProjector targets={labels} reducedMotion={reducedMotion} />
       </Canvas>
       <div
-        className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${cine ? "opacity-0 [&_*]:pointer-events-none" : "opacity-100"}`}
+        className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${cine || letterView ? "opacity-0 [&_*]:pointer-events-none" : "opacity-100"}`}
         data-tags={tags.length}
       >
         {tags.map((t, i) => (
@@ -914,13 +920,40 @@ export default function WorldScene({
                   {pick(lang, "Locked", "未解锁")}
                 </span>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => onOpenRegion(t.id)}
-                  className="pointer-events-auto rounded-full bg-foreground px-3.5 py-1.5 text-[0.66rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85"
-                >
-                  {pick(lang, "Enter", "进入")} {pick(lang, t.name, t.nameZh)}
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (t.id === "community") {
+                        // Zoom in so the bottle in the tide pool can be tapped
+                        // again to re-read the letter.
+                        setLetterView(true);
+                        setFocus(null);
+                        setPeek(null);
+                        setCue(DELIVERY_CAMERA);
+                      } else {
+                        onOpenRegion(t.id);
+                      }
+                    }}
+                    className="pointer-events-auto rounded-full bg-foreground px-3.5 py-1.5 text-[0.66rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85"
+                  >
+                    {t.id === "community"
+                      ? pick(lang, "Read the letter", "查看信件")
+                      : `${pick(lang, "Enter", "进入")} ${pick(lang, t.name, t.nameZh)}`}
+                  </button>
+                  {/* The chapter page (five scenes + the collie's "follow her"
+                      ending) had no way in. Keep the 3D letter view above and
+                      add this small secondary link so the story is reachable. */}
+                  {t.id === "community" && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenRegion("community")}
+                      className="pointer-events-auto text-[0.6rem] tracking-[0.1em] text-foreground/60 underline underline-offset-4 transition-colors hover:text-foreground"
+                    >
+                      {pick(lang, "Enter A Little Message", "进入 一封信的岛")}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
