@@ -8,10 +8,14 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+    // Pure static build: the build prerenders one route-less shell and the client SPA
+    // takes over from there.
+    // Shell is written as index.html so a plain static server serves "/" without rewrites;
+    // deep links get the catch-all rewrite in A4.
+    spa: { enabled: true, prerender: { outputPath: "/index.html" } },
   },
+  // Skip nitro entirely — the lovable wrapper only loads it when this isn't false.
+  nitro: false,
   vite: {
     optimizeDeps: {
       // The 3D stack is a deep module tree. Pre-bundling it turns hundreds of

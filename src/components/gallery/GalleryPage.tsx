@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LangSwitch } from "@/components/LangSwitch";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { pick, t, useLang } from "@/lib/i18n";
@@ -36,6 +36,48 @@ export function GalleryPage({ seen, onClose, onDone, onHome }: Props) {
   });
 
   const total = PLATES.length;
+  // The paintings are real files, so the wall is blank until they arrive. Load
+  // them up front and say what is happening instead of showing an empty room.
+  const artworks = useMemo(() => PLATES.map((p) => ART[p.id]).filter((a) => Boolean(a)), []);
+  const [artLoaded, setArtLoaded] = useState(0);
+  const [galleryReady, setGalleryReady] = useState(false);
+  const [detailLoaded, setDetailLoaded] = useState(false);
+
+  useEffect(() => {
+    setDetailLoaded(false);
+  }, [opened]);
+
+  useEffect(() => {
+    let alive = true;
+    let settled = 0;
+    const count = artworks.length;
+    if (count === 0) {
+      setGalleryReady(true);
+      return;
+    }
+    // Never trap the visitor behind a broken file: after 12s the wall opens
+    // anyway and any missing picture shows the empty frame.
+    const giveUp = window.setTimeout(() => {
+      if (alive) setGalleryReady(true);
+    }, 12000);
+    for (const a of artworks) {
+      const img = new Image();
+      const done = () => {
+        settled += 1;
+        if (!alive) return;
+        setArtLoaded(settled);
+        if (settled >= count) setGalleryReady(true);
+      };
+      img.onload = done;
+      img.onerror = done;
+      img.src = a!.src;
+    }
+    return () => {
+      alive = false;
+      window.clearTimeout(giveUp);
+    };
+  }, [artworks]);
+
   const plate = opened === null ? null : (PLATES[opened] ?? null);
   const art = plate ? (ART[plate.id] ?? null) : null;
 
@@ -243,11 +285,17 @@ export function GalleryPage({ seen, onClose, onDone, onHome }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative grid shrink-0 place-items-center bg-[#e8e2d4] p-4 sm:p-6 md:p-8">
+              {!detailLoaded && art && (
+                <span className="absolute inset-0 grid place-items-center" aria-hidden>
+                  <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#2f4156]/15 border-t-[#a8813f]" />
+                </span>
+              )}
               {art && (
                 <img
                   src={art.src}
                   alt={`${art.title} — ${art.artist}`}
-                  className="max-h-[38vh] w-auto max-w-full object-contain shadow-[0_20px_45px_-24px_rgba(31,48,68,0.9)] md:max-h-[76vh]"
+                  onLoad={() => setDetailLoaded(true)}
+                  className={`max-h-[38vh] w-auto max-w-full object-contain shadow-[0_20px_45px_-24px_rgba(31,48,68,0.9)] transition-opacity duration-500 md:max-h-[76vh] ${detailLoaded ? "opacity-100" : "opacity-0"}`}
                 />
               )}
             </div>
@@ -316,6 +364,38 @@ export function GalleryPage({ seen, onClose, onDone, onHome }: Props) {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {!galleryReady && (
+        <div
+          className="absolute inset-0 z-50 grid place-items-center bg-[linear-gradient(180deg,#eef4f9_0%,#e3ecf3_55%,#d8e3ec_100%)]"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex w-[min(20rem,78vw)] flex-col items-center text-center">
+            <span className="h-9 w-9 animate-spin rounded-full border-2 border-[#2f4156]/15 border-t-[#a8813f]" aria-hidden />
+            <p className="mt-6 text-[0.6rem] font-medium uppercase tracking-[0.34em]" style={{ color: MUTE }}>
+              {zh ? "画廊" : "The gallery"}
+            </p>
+            <p className="mt-2 text-[0.98rem] font-medium" style={{ color: INK }}>
+              {zh ? "正在把画挂上墙…" : "Hanging the paintings…"}
+            </p>
+            <p className="mt-1 text-[0.74rem] tabular-nums" style={{ color: BODY }}>
+              {zh
+                ? `${artLoaded} / ${artworks.length} 幅已就位`
+                : `${artLoaded} / ${artworks.length} frames ready`}
+            </p>
+            <span className="relative mt-4 block h-[2px] w-full overflow-hidden rounded-full bg-[#2f4156]/12" aria-hidden>
+              <span
+                className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
+                style={{
+                  width: `${artworks.length ? Math.round((artLoaded / artworks.length) * 100) : 0}%`,
+                  background: GOLD,
+                }}
+              />
+            </span>
           </div>
         </div>
       )}

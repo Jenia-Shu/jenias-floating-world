@@ -12,7 +12,8 @@
 
 export type Bi = { en: string; zh: string };
 
-export type CardCategory = "music" | "book" | "film" | "city" | "drink" | "life" | "moment" | "happiness";
+export type CardCategory =
+  "music" | "book" | "film" | "city" | "drink" | "life" | "moment" | "happiness";
 
 /** Which engraved drawing sits on the card cover when there is no uploaded photo. */
 export type ArtKey =
@@ -89,7 +90,7 @@ export type PageSeed = {
   aside: PageAside | null;
 };
 
-export type CollectionPage = PageSeed & { cards: CollectionCard[] };
+export type CollectionPage = Omit<PageSeed, "cards"> & { cards: CollectionCard[] };
 
 const bi = (en: string, zh: string): Bi => ({ en, zh });
 const same = (text: string): Bi => ({ en: text, zh: text });
@@ -100,7 +101,11 @@ const NO_TAGS: Bi[] = [];
 
 const created = 1735689600000; // fixed seed timestamp, keeps builds deterministic
 
-function seed(pageId: string, num: string, input: Omit<CardSeed, "pageId" | "num" | "custom" | "createdAt" | "discovered">): CardSeed {
+function seed(
+  pageId: string,
+  num: string,
+  input: Omit<CardSeed, "pageId" | "num" | "custom" | "createdAt" | "discovered">,
+): CardSeed {
   return { ...input, pageId, num, custom: false, createdAt: created };
 }
 
@@ -202,7 +207,10 @@ const BOOKS: PageSeed = {
       title: bi("Ferryman series", "摆渡人系列"),
       subtitle: bi("Claire McFall", "Claire McFall / 克莱儿·麦克福尔"),
       source: null,
-      description: bi("I love the story and the particular worldview it builds.", "喜欢它的故事和独特的世界观。"),
+      description: bi(
+        "I love the story and the particular worldview it builds.",
+        "喜欢它的故事和独特的世界观。",
+      ),
       personalNote: bi(
         "Because I love that world, I am willing to walk back into the story again and again.",
         "因为喜欢那个世界，所以愿意一次又一次地走进那个故事。",
@@ -283,7 +291,12 @@ const FILMS: PageSeed = {
         "What draws me most is that it creates such a particular world that you stop being sure whether you are in a dream or awake.",
         "最吸引我的，是它创造了一个如此特别的世界，让人分不清自己究竟身处梦境还是现实。",
       ),
-      tags: [bi("Sci-fi", "科幻"), bi("Dreams", "梦境"), bi("Mystery", "悬疑"), bi("Worldbuilding", "世界观")],
+      tags: [
+        bi("Sci-fi", "科幻"),
+        bi("Dreams", "梦境"),
+        bi("Mystery", "悬疑"),
+        bi("Worldbuilding", "世界观"),
+      ],
       details: NO_DETAILS,
       coverImage: null,
       art: "spiral",
@@ -301,7 +314,12 @@ const FILMS: PageSeed = {
         "A world big enough, a journey good enough, and images I have not forgotten.",
         "一个足够宏大的世界，一段足够精彩的旅程，以及那些令人难忘的画面。",
       ),
-      tags: [bi("Space", "宇宙"), bi("Sci-fi", "科幻"), bi("Time", "时间"), bi("Exploration", "探索")],
+      tags: [
+        bi("Space", "宇宙"),
+        bi("Sci-fi", "科幻"),
+        bi("Time", "时间"),
+        bi("Exploration", "探索"),
+      ],
       details: NO_DETAILS,
       coverImage: null,
       art: "orbit",
@@ -319,7 +337,12 @@ const FILMS: PageSeed = {
         "I love its xuanhuan world, and the fights and adventures that are full of imagination.",
         "喜欢它的玄幻世界，也喜欢那些充满想象力的战斗与冒险。",
       ),
-      tags: [bi("Donghua", "国漫"), bi("Xuanhuan", "玄幻"), bi("Fights", "战斗"), bi("Adventure", "冒险")],
+      tags: [
+        bi("Donghua", "国漫"),
+        bi("Xuanhuan", "玄幻"),
+        bi("Fights", "战斗"),
+        bi("Adventure", "冒险"),
+      ],
       details: NO_DETAILS,
       coverImage: null,
       art: "mountains",
@@ -337,7 +360,12 @@ const FILMS: PageSeed = {
         "I love its distinctive power system, its complete worldbuilding, and the way the story keeps opening up.",
         "我喜欢它独特的力量体系、完整的世界设定，以及不断展开的故事。",
       ),
-      tags: [bi("Donghua", "国漫"), bi("Spirit power", "武魂"), bi("Fantasy", "奇幻"), bi("Fights", "战斗")],
+      tags: [
+        bi("Donghua", "国漫"),
+        bi("Spirit power", "武魂"),
+        bi("Fantasy", "奇幻"),
+        bi("Fights", "战斗"),
+      ],
       details: NO_DETAILS,
       coverImage: null,
       art: "sigil",
@@ -366,7 +394,15 @@ const CITY_DETAILS: CardDetail[] = [
   },
 ];
 
-const city = (id: string, num: string, en: string, zh: string, art: ArtKey, tint: string, label: Bi | null): CardSeed =>
+const city = (
+  id: string,
+  num: string,
+  en: string,
+  zh: string,
+  art: ArtKey,
+  tint: string,
+  label: Bi | null,
+): CardSeed =>
   seed("places", num, {
     id,
     category: "city",
@@ -626,11 +662,14 @@ export type BadgeIcon = "music" | "book" | "film" | "compass" | "camera" | "worl
 
 export type Badge = {
   id: string;
+  /** The number stamped on the badge in the wall. */
+  num?: number;
   name: Bi;
   caption: Bi;
   icon: BadgeIcon;
-  /** The page that earns it; null for the album-wide badge. */
+  /** The page that earns it; null for badges that pages do not earn. */
   pageId: string | null;
+
   /** Two-stop metal colour. */
   metal: [string, string];
 };
@@ -679,7 +718,10 @@ export const BADGES: Badge[] = [
   {
     id: "badge-world",
     name: bi("Jenia's World", "全部收藏完成纪念"),
-    caption: bi("For exploring all five pages and closing the album.", "探索完五页，合上整本收藏册。"),
+    caption: bi(
+      "For exploring all five pages and closing the album.",
+      "探索完五页，合上整本收藏册。",
+    ),
     icon: "world",
     pageId: null,
     metal: ["#f0dca6", "#9a6d2f"],

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -15,6 +15,50 @@ const smooth = (a: number, b: number, x: number) => {
 };
 
 /* ---------------------------------------------------------------- birds */
+
+/** The bird's body, split out so the bottle courier can fly the same species. */
+export function BirdBody({
+  wings,
+  tail,
+}: {
+  wings: [RefObject<THREE.Mesh | null>, RefObject<THREE.Mesh | null>];
+  tail: RefObject<THREE.Mesh | null>;
+}) {
+  const [wl, wr] = wings;
+  return (
+    <>
+      {/* body: tapered teardrop, nose first */}
+      <mesh castShadow scale={[0.82, 0.78, 1.45]}>
+        <sphereGeometry args={[0.06, 10, 8]} />
+        <meshStandardMaterial color="#f8f5ef" roughness={0.9} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 0.028, 0.075]} castShadow>
+        <sphereGeometry args={[0.04, 10, 8]} />
+        <meshStandardMaterial color="#fffdf8" roughness={0.9} />
+      </mesh>
+      {/* beak */}
+      <mesh position={[0, 0.018, 0.114]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.014, 0.042, 6]} />
+        <meshStandardMaterial color="#e8b169" roughness={0.7} />
+      </mesh>
+      {/* wings: flat but volumetric, narrowing to a tip */}
+      <mesh ref={wl} position={[-0.075, 0.012, -0.005]} rotation={[0, 0.12, 0]} scale={[1.25, 0.14, 0.62]}>
+        <sphereGeometry args={[0.085, 8, 6]} />
+        <meshStandardMaterial color="#f2ede3" roughness={0.95} />
+      </mesh>
+      <mesh ref={wr} position={[0.075, 0.012, -0.005]} rotation={[0, -0.12, 0]} scale={[1.25, 0.14, 0.62]}>
+        <sphereGeometry args={[0.085, 8, 6]} />
+        <meshStandardMaterial color="#f2ede3" roughness={0.95} />
+      </mesh>
+      {/* tail fan */}
+      <mesh ref={tail} position={[0, 0.005, -0.088]} rotation={[-0.2, 0, 0]} scale={[1.6, 1, 0.4]}>
+        <coneGeometry args={[0.036, 0.075, 5]} />
+        <meshStandardMaterial color="#eae3d6" roughness={0.95} />
+      </mesh>
+    </>
+  );
+}
 
 function Bird({
   radius,
@@ -60,35 +104,7 @@ function Bird({
 
   return (
     <group ref={g} position={[radius, height, 0]}>
-      {/* body: tapered teardrop, nose first */}
-      <mesh castShadow scale={[0.82, 0.78, 1.45]}>
-        <sphereGeometry args={[0.06, 10, 8]} />
-        <meshStandardMaterial color="#f8f5ef" roughness={0.9} />
-      </mesh>
-      {/* head */}
-      <mesh position={[0, 0.028, 0.075]} castShadow>
-        <sphereGeometry args={[0.04, 10, 8]} />
-        <meshStandardMaterial color="#fffdf8" roughness={0.9} />
-      </mesh>
-      {/* beak */}
-      <mesh position={[0, 0.018, 0.114]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.014, 0.042, 6]} />
-        <meshStandardMaterial color="#e8b169" roughness={0.7} />
-      </mesh>
-      {/* wings: flat but volumetric, narrowing to a tip */}
-      <mesh ref={wl} position={[-0.075, 0.012, -0.005]} rotation={[0, 0.12, 0]} scale={[1.25, 0.14, 0.62]}>
-        <sphereGeometry args={[0.085, 8, 6]} />
-        <meshStandardMaterial color="#f2ede3" roughness={0.95} />
-      </mesh>
-      <mesh ref={wr} position={[0.075, 0.012, -0.005]} rotation={[0, -0.12, 0]} scale={[1.25, 0.14, 0.62]}>
-        <sphereGeometry args={[0.085, 8, 6]} />
-        <meshStandardMaterial color="#f2ede3" roughness={0.95} />
-      </mesh>
-      {/* tail fan */}
-      <mesh ref={tail} position={[0, 0.005, -0.088]} rotation={[-0.2, 0, 0]} scale={[1.6, 1, 0.4]}>
-        <coneGeometry args={[0.036, 0.075, 5]} />
-        <meshStandardMaterial color="#eae3d6" roughness={0.95} />
-      </mesh>
+      <BirdBody wings={[wl, wr]} tail={tail} />
     </group>
   );
 }

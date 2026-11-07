@@ -12,10 +12,22 @@ type Props = {
   onClose: () => void;
   onDone: () => void;
   onHome: () => void;
+  /** Marks the region explored without closing the panel. */
+  onComplete?: (() => void) | undefined;
+  /** Opens the Achievement Wall from inside the Fun Zone. */
+  onOpenWall?: (() => void) | undefined;
 };
 
 /** Full-screen reading surface for one island. The map keeps rendering behind it. */
-export function WorldPage({ region, seen, onClose, onDone, onHome }: Props) {
+export function WorldPage({
+  region,
+  seen,
+  onClose,
+  onDone,
+  onHome,
+  onComplete,
+  onOpenWall,
+}: Props) {
   const [lang] = useLang();
   const ui = t(lang);
 
@@ -29,7 +41,15 @@ export function WorldPage({ region, seen, onClose, onDone, onHome }: Props) {
   }
 
   if (region.id === "collections") {
-    return <CollectionsPage seen={seen} onClose={onClose} onDone={onDone} onHome={onHome} />;
+    return (
+      <CollectionsPage
+        seen={seen}
+        onClose={onClose}
+        onDone={onDone}
+        onHome={onHome}
+        onComplete={onComplete}
+      />
+    );
   }
 
   return (
@@ -55,11 +75,36 @@ export function WorldPage({ region, seen, onClose, onDone, onHome }: Props) {
         <div className="mt-14 space-y-14">
           {region.sections.map((s) => (
             <section key={s.id}>
-              <h2 className="text-[0.7rem] tracking-[0.28em] uppercase text-accent-foreground">{s.title}</h2>
+              <h2 className="text-[0.7rem] tracking-[0.28em] uppercase text-accent-foreground">
+                {s.title}
+              </h2>
               <p className="mt-3 text-[0.95rem] leading-[1.85] text-muted-foreground">{s.body}</p>
             </section>
           ))}
         </div>
+
+        {region.id === "fun" && onOpenWall && (
+          <button
+            type="button"
+            onClick={onOpenWall}
+            className="mt-12 flex w-full items-center justify-between gap-4 rounded-3xl border border-border/60 bg-background/70 px-5 py-5 text-left transition hover:border-foreground/30"
+          >
+            <span>
+              <span className="block text-[0.62rem] tracking-[0.28em] uppercase text-muted-foreground">
+                {pick(lang, "Achievement Wall", "徽章墙")}
+              </span>
+              <span className="mt-1 block font-display text-2xl text-foreground">
+                {pick(lang, "MY ACHIEVEMENTS", "我的徽章")}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {pick(lang, "Every badge you have really earned.", "每一枚真正获得的徽章。")}
+              </span>
+            </span>
+            <span aria-hidden className="text-2xl text-muted-foreground">
+              →
+            </span>
+          </button>
+        )}
 
         <footer className="mt-20 flex flex-wrap items-center gap-2 border-t border-border/60 pt-8">
           {seen ? (

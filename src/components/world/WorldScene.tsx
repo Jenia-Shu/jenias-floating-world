@@ -1,5 +1,5 @@
 import type React from "react";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -8,42 +8,195 @@ import { Island } from "./Island";
 import { MainIsland } from "./MainIsland";
 import { Cloud, Flowers, LockMarker, Mushroom, Rock, Tree } from "./details";
 import { Grow } from "./Grow";
+import { Collie } from "./collie";
 import { IslandTheme } from "./islands";
+import { CollieDelivery } from "./CollieDelivery";
+import { POND, POND_DIP } from "@/lib/world/bottle";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
 import { isUnlocked } from "@/lib/world/regions";
 import { pick, useLang } from "@/lib/i18n";
+import { currentSession } from "@/lib/user";
+import { BADGE_BY_ID } from "@/lib/achievements/badges";
+import { buildStats } from "@/lib/achievements/stats";
+import {
+  achKey,
+  evaluate,
+  readState,
+  recordAnimal,
+  recordEgg,
+  recordSurprise,
+  writeState,
+} from "@/lib/achievements/store";
+import type { BadgeId } from "@/lib/achievements/types";
+import { EmblemThumb } from "@/components/achievements/Emblem";
 
 const START = new THREE.Vector3(4, 26, 40);
 const END = new THREE.Vector3(10, 7.5, 15);
 const TARGET = new THREE.Vector3(0, 0.3, 0);
 const INTRO_S = 3;
+const FOCUS_S = 1.1;
 
-function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
+/** Where an island sits, and how big it is, so the camera can frame it. */
+type FocusPoint = { pos: readonly [number, number, number]; radius: number };
+
+/** A one-off camera framing, in world space. */
+export type CameraCue = { pos: readonly [number, number, number]; target: readonly [number, number, number]; dur?: number };
+
+function CameraRig({
+  reducedMotion,
+  focus,
+  points,
+  peek,
+  cue,
+  resetSignal,
+  locked,
+  onIntroDone,
+}: {
+  reducedMotion: boolean;
+  focus: string | null;
+  points: Record<string, FocusPoint>;
+  /** The collie, framed for a couple of seconds after a click. */
+  peek: { x: number; y: number; z: number } | null;
+  cue: CameraCue | null;
+  resetSignal: number;
+  /** Keep the camera still and the orbit controls off (a cutscene is running). */
+  locked: boolean;
+  onIntroDone: () => void;
+}) {
   const { camera } = useThree();
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
-  const t = useRef(reducedMotion ? INTRO_S : 0);
   const aspect = useThree((s) => s.size.width / s.size.height);
   // pull the camera back on tall/narrow screens so the whole island fits
-  const end = useMemo(() => END.clone().multiplyScalar(Math.min(2.1, Math.max(1, 1.15 / aspect))), [aspect]);
-  useFrame((_, dt) => {
+  const overview = useMemo(() => END.clone().multiplyScalar(Math.min(2.1, Math.max(1, 1.15 / aspect))), [aspect]);
+
+  // Clicking an island frames it instead of opening it: keep the angle the
+  // visitor already looks from (clamped above the horizon) and close the
+  // distance. The page behind an island only opens from its label button.
+  const focusView = useMemo(() => {
+    const p = focus ? points[focus] : undefined;
+    if (!p) return null;
+    const dir = camera.position.clone().sub(controls?.target ?? TARGET);
+    if (dir.lengthSq() < 1e-6) dir.set(0.5, 0.6, 0.8);
+    dir.y = Math.max(dir.y, 0.4);
+    dir.normalize();
+    const target = new THREE.Vector3(p.pos[0], p.pos[1] + 0.9, p.pos[2]);
+    const dist = Math.max(9, p.radius * 3);
+    return { pos: target.clone().addScaledVector(dir, dist), target };
+  }, [focus, points, camera, controls]);
+
+  const cueView = useMemo(
+    () =>
+      cue
+        ? {
+            pos: new THREE.Vector3(cue.pos[0], cue.pos[1], cue.pos[2]),
+            target: new THREE.Vector3(cue.target[0], cue.target[1], cue.target[2]),
+            dur: cue.dur,
+          }
+        : null,
+    [cue],
+  );
+
+  // The dog is small and never stands still, so the click leans in close from
+  // wherever the visitor already looks, holds for a beat, then lets go.
+  const peekView = useMemo(() => {
+    if (!peek) return null;
+    const dir = camera.position.clone().sub(controls?.target ?? TARGET);
+    dir.y = Math.max(dir.y, 0.35);
+    dir.normalize();
+    const target = new THREE.Vector3(peek.x, peek.y + 0.3, peek.z);
+    return { pos: target.clone().addScaledVector(dir, 3.4), target };
+  }, [peek, camera, controls]);
+
+  const view = cueView ?? peekView ?? focusView;
+
+  const flight = useRef<{
+    fromPos: THREE.Vector3;
+    fromTarget: THREE.Vector3;
+    toPos: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    t: number;
+    dur: number;
+  } | null>(null);
+  const introDone = useRef(false);
+  // The cutscene may only start once the opening swoop has actually landed;
+  // otherwise the camera cue interrupts the intro halfway.
+  const announcedIntro = useRef(false);
+  // A resize must not yank the camera away from where the visitor left it;
+  // only a focus change (or the opening flight) starts a new one.
+  const overviewRef = useRef(overview);
+  overviewRef.current = overview;
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked;
+
+  // One flight helper for the opening swoop, every focus change and the
+  // bottle-delivery framing.
+  useEffect(() => {
     if (!controls) return;
-    if (t.current < INTRO_S) {
-      t.current = Math.min(INTRO_S, t.current + Math.min(dt, 0.05));
-      const p = t.current / INTRO_S;
-      const e = 1 - Math.pow(1 - p, 3);
-      camera.position.lerpVectors(START, end, e);
-      controls.target.copy(TARGET);
-      controls.enabled = p >= 1;
+    const intro = !introDone.current;
+    introDone.current = true;
+    const toPos = (view ? view.pos : overviewRef.current).clone();
+    const toTarget = (view ? view.target : TARGET).clone();
+    const dur = reducedMotion ? 0 : intro ? INTRO_S : cueView ? (cueView.dur ?? 1.6) : FOCUS_S;
+    if (dur === 0) {
+      camera.position.copy(toPos);
+      controls.target.copy(toTarget);
+      flight.current = null;
       controls.update();
+      controls.enabled = !lockedRef.current;
+      if (!announcedIntro.current) {
+        announcedIntro.current = true;
+        onIntroDone();
+      }
+    } else {
+      flight.current = {
+        fromPos: camera.position.clone(),
+        fromTarget: controls.target.clone(),
+        toPos,
+        toTarget,
+        t: 0,
+        dur,
+      };
+    }
+  }, [controls, camera, view, cueView, reducedMotion, resetSignal, onIntroDone]);
+
+  // The delivery and the dog peek both lean right in, so the orbit floor has
+  // to come down with them.
+  useEffect(() => {
+    if (!controls) return;
+    controls.minDistance = cueView || peekView ? 3 : 8;
+  }, [controls, cueView, peekView]);
+
+  useEffect(() => {
+    if (!controls || flight.current) return;
+    controls.enabled = !locked;
+  }, [controls, locked]);
+
+  useFrame((_, dt) => {
+    const f = flight.current;
+    if (!f || !controls) return;
+    f.t = Math.min(f.dur, f.t + Math.min(dt, 0.05));
+    const p = f.t / f.dur;
+    const e = 1 - Math.pow(1 - p, 3);
+    camera.position.lerpVectors(f.fromPos, f.toPos, e);
+    controls.target.lerpVectors(f.fromTarget, f.toTarget, e);
+    controls.enabled = false;
+    controls.update();
+    if (p >= 1) {
+      flight.current = null;
+      controls.enabled = !lockedRef.current;
+      if (!announcedIntro.current) {
+        announcedIntro.current = true;
+        onIntroDone();
+      }
     }
   });
-  useEffect(() => {
-    if (reducedMotion) camera.position.copy(end);
-  }, [reducedMotion, camera, end]);
   return null;
 }
 
 type LabelTarget = { el: HTMLElement | null; world: THREE.Vector3; bob: number };
+
+/** Framing for the bottle delivery: close enough to see the collie and the pond. */
+const DELIVERY_CAMERA: CameraCue = { pos: [10.2, 2.85, -5.95], target: [9.2, 1.55, -8.85], dur: 1.5 };
 
 /** Projects world points to screen each frame and positions plain DOM labels. */
 function LabelProjector({
@@ -125,10 +278,10 @@ const REGIONS_3D: Region3D[] = [
     nameZh: "收藏",
     pos: [8.5, 1.1, -10],
     phase: 2.6,
-    shape: { radius: 2.2, height: 0.4, depth: 2.3, seed: 7.7, bump: 0.08 },
+    shape: { radius: 2.2, height: 0.4, depth: 2.3, seed: 7.7, bump: 0.08, dips: [POND_DIP] },
     trees: [
       [-0.5, -0.4, 0.8],
-      [0.7, 0.3, 0.6],
+      [1.55, -0.55, 0.6],
     ],
   },
   {
@@ -151,12 +304,24 @@ const REGIONS_3D: Region3D[] = [
   },
 ];
 
+/** The island the bottle delivery plays on. */
+const COLLECTIONS_3D = REGIONS_3D.find((r) => r.id === "collections")!;
+
 /**
  * A treeline and a few blooms around the edge of a satellite island. Without
  * this, unlocking one just swaps a padlock for a single building on bare grass,
  * which reads as "still empty" rather than "this place is now open".
  */
-function IslandGreen({ shape, seed }: { shape: IslandShape; seed: number }) {
+function IslandGreen({
+  shape,
+  seed,
+  skip,
+}: {
+  shape: IslandShape;
+  seed: number;
+  /** Ring spots to leave empty (the third island's pond sits in one of them). */
+  skip?: ((x: number, z: number) => boolean) | undefined;
+}) {
   const spots = useMemo(() => {
     const list: { x: number; y: number; z: number; s: number; r: number }[] = [];
     for (let i = 0; i < 12; i++) {
@@ -164,10 +329,11 @@ function IslandGreen({ shape, seed }: { shape: IslandShape; seed: number }) {
       const rr = 0.6 + ((i * 5) % 4) * 0.1;
       const x = Math.cos(a) * rr * shape.radius;
       const z = Math.sin(a) * rr * shape.radius;
+      if (skip?.(x, z)) continue;
       list.push({ x, y: surfaceHeight(x, z, shape), z, s: 0.42 + ((i * 3) % 5) * 0.08, r: a });
     }
     return list;
-  }, [shape, seed]);
+  }, [shape, seed, skip]);
 
   const blooms = useMemo(
     () =>
@@ -198,18 +364,23 @@ function IslandGreen({ shape, seed }: { shape: IslandShape; seed: number }) {
   );
 }
 
+/** Keep trees and mushrooms out of the pond on the third island. */
+const NEAR_POND = (x: number, z: number) => Math.hypot(x - POND.x, z - POND.z) < POND.r + 0.3;
+
 function RegionIsland({
   data,
   unlocked,
   reducedMotion,
-  onOpen,
+  onSelect,
   onHover,
+  onEgg,
 }: {
   data: Region3D;
   unlocked: boolean;
   reducedMotion: boolean;
-  onOpen: () => void;
+  onSelect: () => void;
   onHover: (h: boolean) => void;
+  onEgg: (id: string) => void;
 }) {
   const h = (x: number, z: number) => surfaceHeight(x, z, data.shape);
   const outward = useMemo<[number, number]>(() => {
@@ -224,13 +395,13 @@ function RegionIsland({
       muted={!unlocked}
       bobPhase={data.phase}
       reducedMotion={reducedMotion}
-      onSelect={unlocked ? onOpen : undefined}
+      onSelect={unlocked ? onSelect : undefined}
       onHover={unlocked ? onHover : undefined}
     >
       {unlocked && (
         <>
-          <IslandTheme id={data.id} shape={data.shape} reducedMotion={reducedMotion} outward={outward} />
-          <IslandGreen shape={data.shape} seed={data.phase} />
+          <IslandTheme id={data.id} shape={data.shape} reducedMotion={reducedMotion} outward={outward} onEgg={onEgg} />
+          <IslandGreen shape={data.shape} seed={data.phase} skip={data.id === "collections" ? NEAR_POND : undefined} />
           {data.trees.map(([x, z, s], i) => (
             <Grow key={i} position={[x, h(x, z) - 0.02, z]}>
               <Tree position={[0, 0, 0]} scale={s} variant={i + 2} />
@@ -276,16 +447,268 @@ function SteppingRocks() {
   );
 }
 
+/** Three soft notes. Silent when the visitor has turned sound off. */
+function chime() {
+  try {
+    if (localStorage.getItem("jenia:sound") === "off") return;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    const ctx = new Ctor();
+    [659.25, 987.77, 1318.51].forEach((freq, i) => {
+      const at = ctx.currentTime + i * 0.11;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.linearRampToValueAtTime(0.09, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.85);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at);
+      osc.stop(at + 0.9);
+    });
+    window.setTimeout(() => void ctx.close(), 1400);
+  } catch {
+    // sound is a nicety, never a blocker
+  }
+}
+
+/** Purely visual weather: a meteor, fireflies, or a low rainbow. */
+function SurpriseOverlay({ kind }: { kind: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden>
+      {kind === "shooting-star" && (
+        <span className="surprise-meteor">
+          <i />
+        </span>
+      )}
+      {kind === "fireflies" && (
+        <span className="surprise-fireflies">
+          {Array.from({ length: 20 }, (_, i) => (
+            <i
+              key={i}
+              style={{
+                left: `${(i * 37) % 100}%`,
+                top: `${22 + ((i * 53) % 58)}%`,
+                animationDelay: `${(i % 7) * 0.32}s`,
+              }}
+            />
+          ))}
+        </span>
+      )}
+      {kind === "rainbow" && (
+        <span className="surprise-rainbow">
+          <i />
+          <i />
+          <i />
+        </span>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   reducedMotion: boolean;
   visited: readonly string[];
   onOpenRegion: (id: string) => void;
   onReady: () => void;
+  /** Stop drawing while a page covers the map — frees the GPU and the context budget. */
+  paused?: boolean;
+  /** The browser dropped the WebGL context (tab switch, driver reset, GPU eviction). */
+  onContextLost?: (() => void) | undefined;
+  /** The third island owes the visitor a bottle delivery (first time only). */
+  bottleDue?: boolean;
+  /** The bottle is in the water, or on its way there. */
+  bottleFloating?: boolean;
+  /** Keep the "there is something in the pond" nudge until the letter is read. */
+  bottleUnread?: boolean;
+  /** The letter has been read — the collie is free to leave. */
+  bottleRead?: boolean;
+  onBottleDelivered?: (() => void) | undefined;
+  onOpenLetter?: (() => void) | undefined;
+  /** Bumped when the letter closes, so the camera drifts back to the overview. */
+  overviewTick?: number;
 };
 
-export default function WorldScene({ reducedMotion, visited, onOpenRegion, onReady }: Props) {
+export default function WorldScene({
+  reducedMotion,
+  visited,
+  onOpenRegion,
+  onReady,
+  paused = false,
+  onContextLost,
+  bottleDue = false,
+  bottleFloating = false,
+  bottleUnread = false,
+  bottleRead = false,
+  onBottleDelivered,
+  onOpenLetter,
+  overviewTick = 0,
+}: Props) {
   const [lang] = useLang();
   const [hovered, setHovered] = useState(false);
+  /** The island the camera is currently framing. Pages open from the label button only. */
+  const [focus, setFocus] = useState<string | null>(null);
+  /** The bottle delivery: the camera holds still and the labels step aside. */
+  const [cine, setCine] = useState(false);
+  const [cue, setCue] = useState<CameraCue | null>(null);
+  const [resetSignal, setResetSignal] = useState(0);
+  const [introReady, setIntroReady] = useState(false);
+  const deliveryStarted = useRef(false);
+  const onIntroDone = useCallback(() => setIntroReady(true), []);
+  const handleDelivered = useCallback(() => onBottleDelivered?.(), [onBottleDelivered]);
+  const handleOpenLetter = useCallback(() => onOpenLetter?.(), [onOpenLetter]);
+  const handleDone = useCallback(() => setCine(false), []);
+  const focusIsland = useCallback(
+    (id: string) => {
+      if (cine) return;
+      setCue(null);
+      setFocus(id);
+    },
+    [cine],
+  );
+  const focusPoints = useMemo<Record<string, FocusPoint>>(() => {
+    const p: Record<string, FocusPoint> = { about: { pos: [0, 0, 0], radius: 5 } };
+    for (const r of REGIONS_3D) p[r.id] = { pos: r.pos, radius: r.shape.radius };
+    return p;
+  }, []);
+  /** Clicking the collie leans the camera onto her, then lets go two beats later. */
+  const [peek, setPeek] = useState<{ x: number; y: number; z: number } | null>(null);
+  const peekTimer = useRef(0);
+  const onColliePoke = useCallback(
+    (at: { x: number; y: number; z: number }) => {
+      if (cine) return;
+      setPeek(at);
+      window.clearTimeout(peekTimer.current);
+      peekTimer.current = window.setTimeout(() => setPeek(null), 2000);
+    },
+    [cine],
+  );
+  useEffect(() => () => window.clearTimeout(peekTimer.current), []);
+  // Where the pointer went down, so a drag across empty sky does not clear the
+  // focus — only a genuine click does.
+  const press = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!focus && !peek) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFocus(null);
+        setPeek(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focus, peek]);
+
+  // Once the first two islands are done, the third one delivers a bottle: the
+  // camera turns to its pond and the collie does the rest.
+  useEffect(() => {
+    if (!bottleDue || !introReady || deliveryStarted.current) return;
+    const id = window.setTimeout(() => {
+      deliveryStarted.current = true;
+      setFocus(null);
+      setCue(DELIVERY_CAMERA);
+      setCine(true);
+    }, 700);
+    return () => window.clearTimeout(id);
+  }, [bottleDue, introReady]);
+
+  // Closing the letter returns to the overview, not to whatever was framed before.
+  const lastTick = useRef(overviewTick);
+  useEffect(() => {
+    if (overviewTick === lastTick.current) return;
+    lastTick.current = overviewTick;
+    setCue(null);
+    setFocus(null);
+    setCine(false);
+    setResetSignal((n) => n + 1);
+  }, [overviewTick]);
+  const [found, setFound] = useState(false);
+  const [toast, setToast] = useState<BadgeId | null>(null);
+  const [surprise, setSurprise] = useState<string | null>(null);
+  const [muted, setMuted] = useState(false);
+  useEffect(() => {
+    setMuted(localStorage.getItem("jenia:sound") === "off");
+  }, []);
+  useEffect(() => {
+    if (!found) return;
+    const id = window.setTimeout(() => setFound(false), 5600);
+    return () => window.clearTimeout(id);
+  }, [found]);
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 5600);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  /** Re-evaluates the wall and hands back any badge that just became real. */
+  const newlyEarned = useCallback((): BadgeId[] => {
+    const session = currentSession();
+    if (!session) return [];
+    const state = readState(achKey(session));
+    const stats = buildStats(session, state);
+    const ev = evaluate(state, stats);
+    if (ev.newly.length) writeState(achKey(session), ev.state);
+    return ev.newly;
+  }, []);
+
+  const onEgg = useCallback(
+    (id: string) => {
+      const session = currentSession();
+      if (!session) return;
+      recordEgg(session, id);
+      const newly = newlyEarned();
+      if (newly[0]) {
+        setToast(newly[0]);
+        chime();
+      }
+    },
+    [newlyEarned],
+  );
+
+  const onAnimal = useCallback(() => {
+    const session = currentSession();
+    if (!session) return;
+    recordAnimal(session, "border-collie");
+    newlyEarned();
+    setFound(true);
+    chime();
+  }, [newlyEarned]);
+
+  // A rare, harmless surprise. It is visual only and records which kinds were
+  // met; it never hands out a badge on a coin flip — the badges need 1 or 3 of
+  // these, and the third one only comes from actually meeting three kinds.
+  useEffect(() => {
+    if (reducedMotion) return;
+    let alive = true;
+    let timer = 0;
+    const kinds = ["shooting-star", "fireflies", "rainbow"];
+    const show = () => {
+      if (!alive) return;
+      const kind = kinds[Math.floor(Math.random() * kinds.length)]!;
+      setSurprise(kind);
+      const session = currentSession();
+      if (session) {
+        recordSurprise(session, kind);
+        const newly = newlyEarned();
+        if (newly[0]) {
+          setToast(newly[0]);
+          chime();
+        }
+      }
+      window.setTimeout(() => {
+        if (alive) setSurprise(null);
+      }, 7000);
+      timer = window.setTimeout(show, 45000 + Math.random() * 30000);
+    };
+    timer = window.setTimeout(show, 16000 + Math.random() * 10000);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [reducedMotion, newlyEarned]);
   const shell = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState("?");
   useEffect(() => {
@@ -313,22 +736,57 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
     { id: "about", name: "My World", nameZh: "我的世界", locked: false },
     ...REGIONS_3D.map((r) => ({ id: r.id, name: r.name, nameZh: r.nameZh, locked: !isUnlocked(r.id, visited) })),
   ];
+  const toastDef = toast ? BADGE_BY_ID.get(toast) : undefined;
 
   return (
-    <div className="absolute inset-0" ref={shell} data-box={box}>
+    <div
+      className="absolute inset-0"
+      ref={shell}
+      data-box={box}
+      onPointerDown={(e) => {
+        press.current = { x: e.clientX, y: e.clientY };
+      }}
+    >
       <Canvas
         shadows
         dpr={[1, 1.25]}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        frameloop={paused ? "never" : "always"}
+        onPointerMissed={(e) => {
+          const p = press.current;
+          if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) {
+            setFocus(null);
+            setPeek(null);
+            setCue(null);
+          }
+        }}
+        // "default" lets the browser keep the canvas on the GPU it started on.
+        // Forcing "high-performance" makes laptops switch GPUs when the window
+        // moves, and the switch is a common cause of a lost WebGL context.
+        gl={{ antialias: true, alpha: true, powerPreference: "default" }}
         camera={{
           position: reducedMotion ? END.toArray() : START.toArray(),
           fov: 40,
           near: 0.1,
           far: 200,
         }}
-        onCreated={({ gl }) => {
+        onCreated={({ gl, scene, camera }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
+          // A lost context leaves a blank canvas that looks like a frozen page.
+          // Swallow the default behaviour so the browser may restore it, and let
+          // the map remount a fresh scene instead of sitting there empty.
+          gl.domElement.addEventListener(
+            "webglcontextlost",
+            (event) => {
+              event.preventDefault();
+              onContextLost?.();
+            },
+            { once: true },
+          );
+          // ponytail: the scene stays reachable from the console so the world can
+          // be inspected without a debug build. Cheap: two references.
+          (window as unknown as { __scene?: THREE.Scene }).__scene = scene;
+          (window as unknown as { __camera?: THREE.Camera }).__camera = camera;
           // The renderer is alive — that is the only signal the veil needs.
           onReady();
         }}
@@ -361,10 +819,11 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
         <Suspense fallback={null}>
           <MainIsland
             reducedMotion={reducedMotion}
-            onOpen={() => onOpenRegion("about")}
+            onSelect={() => focusIsland("about")}
             hovered={hovered}
             setHovered={setHovered}
             revealed={true}
+            onEgg={onEgg}
           />
           {REGIONS_3D.map((r) => (
             <RegionIsland
@@ -372,11 +831,27 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
               data={r}
               unlocked={isUnlocked(r.id, visited)}
               reducedMotion={reducedMotion}
-              onOpen={() => onOpenRegion(r.id)}
+              onSelect={() => focusIsland(r.id)}
               onHover={setHovered}
+              onEgg={onEgg}
             />
           ))}
+          {isUnlocked("collections", visited) && (
+            <CollieDelivery
+              shape={COLLECTIONS_3D.shape}
+              play={cine}
+              delivered={bottleFloating}
+              exit={bottleRead}
+              reducedMotion={reducedMotion}
+              onDelivered={handleDelivered}
+              onDone={handleDone}
+              onOpen={handleOpenLetter}
+            />
+          )}
           <SteppingRocks />
+          {!cine && !(bottleFloating && bottleUnread) && (
+            <Collie reducedMotion={reducedMotion} onFound={onAnimal} onPoke={onColliePoke} />
+          )}
           <Cloud position={[-14, 6, -16]} scale={2.2} speed={0.04} reducedMotion={reducedMotion} />
           <Cloud position={[16, 8, -20]} scale={2.8} speed={0.03} reducedMotion={reducedMotion} />
           <Cloud position={[2, -7, -14]} scale={2} speed={0.05} reducedMotion={reducedMotion} />
@@ -389,6 +864,7 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
 
         <OrbitControls
           makeDefault
+          enabled={!cine}
           enablePan={false}
           enableDamping
           dampingFactor={0.08}
@@ -398,12 +874,23 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
           maxPolarAngle={1.42}
           rotateSpeed={0.6}
           zoomSpeed={0.7}
-          target={TARGET.toArray()}
         />
-        <CameraRig reducedMotion={reducedMotion} />
+        <CameraRig
+          reducedMotion={reducedMotion}
+          focus={focus}
+          points={focusPoints}
+          peek={peek}
+          cue={cue}
+          resetSignal={resetSignal}
+          locked={cine}
+          onIntroDone={onIntroDone}
+        />
         <LabelProjector targets={labels} reducedMotion={reducedMotion} />
       </Canvas>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" data-tags={tags.length}>
+      <div
+        className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${cine ? "opacity-0 [&_*]:pointer-events-none" : "opacity-100"}`}
+        data-tags={tags.length}
+      >
         {tags.map((t, i) => (
           <div
             key={t.id}
@@ -437,6 +924,112 @@ export default function WorldScene({ reducedMotion, visited, onOpenRegion, onRea
           </div>
         ))}
       </div>
+      {surprise && <SurpriseOverlay kind={surprise} />}
+      {toastDef && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
+          <div
+            role="status"
+            className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-white/70 bg-white/88 px-4 py-3 shadow-[0_22px_54px_-28px_rgba(20,40,60,0.62)] backdrop-blur-md"
+            style={{ animation: "rise 620ms cubic-bezier(.22,.68,.24,1) both" }}
+          >
+            <span
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full"
+              style={{ background: `radial-gradient(circle at 32% 26%, ${toastDef.metal[0]}, ${toastDef.metal[1]})` }}
+            >
+              <EmblemThumb emblem={toastDef.emblem} metal={toastDef.metal} silhouette={false} className="block h-9 w-9" />
+            </span>
+            <div className="text-left">
+              <p className="text-[0.48rem] uppercase tracking-[0.3em] text-[#7d9fc4]">
+                {pick(lang, `New badge · No. ${toastDef.num}`, `新徽章 · 第 ${toastDef.num} 号`)}
+              </p>
+              <p className="mt-0.5 text-[0.86rem] font-medium text-[#2f4156]">{pick(lang, toastDef.en, toastDef.zh)}</p>
+              <p className="mt-0.5 max-w-[15rem] text-[0.6rem] leading-snug text-[#465a72]/80">
+                {pick(lang, toastDef.line.en, toastDef.line.zh)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {found && !toastDef && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
+          <div
+            role="status"
+            className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-white/70 bg-white/88 px-4 py-3 shadow-[0_22px_54px_-28px_rgba(20,40,60,0.62)] backdrop-blur-md"
+            style={{ animation: "rise 620ms cubic-bezier(.22,.68,.24,1) both" }}
+          >
+            <span
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#2f4156]"
+              style={{ background: "radial-gradient(circle at 32% 26%, #e8eff6, #8fa9bf)" }}
+              aria-hidden
+            >
+              <svg
+                viewBox="0 0 48 48"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M24 13c4.8 0 7.6 3 7.6 7.6 0 2.4-.4 4.3-1.3 6l-1.7 6c-.4 1.6-1.9 2.6-3.5 2.6h-2.2c-1.6 0-3.1-1-3.5-2.6l-1.7-6c-.9-1.7-1.3-3.6-1.3-6C16.4 16 19.2 13 24 13Z" />
+                <path d="M17.8 16.6 15.2 10l4.7 3.3M30.2 16.6 32.8 10 28.1 13.3" />
+                <circle cx="21.2" cy="20.6" r="1.4" fill="currentColor" stroke="none" />
+                <circle cx="26.8" cy="20.6" r="1.4" fill="currentColor" stroke="none" />
+                <path d="M24 24.4v2.2" />
+              </svg>
+            </span>
+            <div className="text-left">
+              <p className="text-[0.48rem] uppercase tracking-[0.3em] text-[#7d9fc4]">
+                {pick(lang, "New badge · No. 37", "新徽章 · 第 37 号")}
+              </p>
+              <p className="mt-0.5 text-[0.86rem] font-medium text-[#2f4156]">
+                {pick(lang, "Border Collie Tracker", "小狗追踪员")}
+              </p>
+              <p className="mt-0.5 max-w-[15rem] text-[0.6rem] leading-snug text-[#465a72]/80">
+                {pick(
+                  lang,
+                  "You found the little one running between the islands.",
+                  "你发现了那只在岛屿之间奔跑的小家伙。",
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem("jenia:sound", "off");
+                setMuted(true);
+              }}
+              disabled={muted}
+              className="ml-1 shrink-0 rounded-full border border-[#2f4156]/15 px-2 py-0.5 text-[0.55rem] text-[#465a72]/70 transition hover:bg-[#2f4156]/5 disabled:opacity-40"
+              aria-label={pick(lang, "Turn the sound off", "关掉音效")}
+            >
+              {muted ? "🔇" : "🔈"}
+            </button>
+          </div>
+        </div>
+      )}
+      {bottleFloating && bottleUnread && !cine && (
+        <div className="absolute inset-x-0 bottom-16 z-20 flex justify-center px-4">
+          {cue ? (
+            <p className="pointer-events-none rounded-full border border-white/70 bg-white/80 px-4 py-2 text-[0.7rem] tracking-[0.06em] text-[#2f4156] shadow-[0_18px_40px_-30px_rgba(20,40,60,0.6)] backdrop-blur-md">
+              {pick(lang, "A bottle is drifting in the pond — tap it.", "水面上漂着一只瓶子，点它看看。")}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setFocus(null);
+                setCue(DELIVERY_CAMERA);
+              }}
+              className="pointer-events-auto rounded-full border border-white/70 bg-white/85 px-4 py-2 text-[0.7rem] text-[#2f4156] shadow-[0_18px_40px_-30px_rgba(20,40,60,0.6)] backdrop-blur-md transition hover:bg-white"
+              style={{ animation: "rise 620ms cubic-bezier(.22,.68,.24,1) both" }}
+            >
+              {pick(lang, "Something is drifting in the third island's pond", "第三座岛的水池里，好像有东西")}{" "}
+              <span aria-hidden>→</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

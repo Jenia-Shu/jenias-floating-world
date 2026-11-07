@@ -1,10 +1,25 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { REGIONS, isUnlocked, regionById } from "@/lib/world/regions";
 import { pick, t, useLang, type Lang } from "@/lib/i18n";
-import { visitedKey, type Session } from "@/lib/user";
+import { bottleKey, setNickname, visitedKey, type Session } from "@/lib/user";
+import { readBottle, writeBottle, type BottleStage } from "@/lib/world/bottle";
+import { recordExplored, recordSection } from "@/lib/achievements/store";
+import { AchievementWall } from "./achievements/AchievementWall";
 import { LangSwitch } from "./LangSwitch";
 import { WorldPage } from "./WorldPage";
+import { LetterModal } from "./world/LetterModal";
 
 const WorldScene = lazy(() => import("./world/WorldScene"));
 
@@ -28,7 +43,10 @@ function hasWebGL() {
   return webglSupport;
 }
 
-class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
   override state = { failed: false };
   static getDerivedStateFromError(error: unknown) {
     // Runs before the fallback renders, so the message is readable there.
@@ -111,7 +129,8 @@ function FlatMap({
 
 /** Shown only if three.js itself throws — never a list of islands, just a way out. */
 function SceneStuck({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
-  const detail = typeof document !== "undefined" ? document.documentElement.dataset["sceneError"] : undefined;
+  const detail =
+    typeof document !== "undefined" ? document.documentElement.dataset["sceneError"] : undefined;
   return (
     <div className="absolute inset-0 grid place-items-center px-6">
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
@@ -134,14 +153,125 @@ function SceneStuck({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
   );
 }
 
+/**
+ * Renaming is a session swap, not a data move: the new nickname gets its own
+ * progress keys, the old ones are left untouched.
+ */
+function NicknamePanel({
+  user,
+  lang,
+  onClose,
+  onSaved,
+}: {
+  user: Session;
+  lang: Lang;
+  onClose: () => void;
+  onSaved: (session: Session) => void;
+}) {
+  const [zh, setZh] = useState(user.zh);
+  const [en, setEn] = useState(user.en);
+  const [invalid, setInvalid] = useState(false);
+
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    const next = setNickname(en, zh);
+    if (!next) {
+      setInvalid(true);
+      return;
+    }
+    onSaved(next);
+    onClose();
+  };
+
+  const field =
+    "mt-2 h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3 text-sm text-foreground outline-none transition focus:border-foreground/30";
+  const label =
+    "mt-4 block text-[0.68rem] font-semibold tracking-[0.16em] uppercase text-muted-foreground";
+
+  return (
+    <div
+      className="absolute inset-0 z-30 grid place-items-center bg-foreground/10 px-5 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="nickname-title"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <form
+        onSubmit={save}
+        className="w-full max-w-xs rounded-2xl border border-border/70 bg-background px-6 py-6 shadow-[0_2px_40px_rgba(64,92,120,0.16)]"
+      >
+        <h2 id="nickname-title" className="font-display text-xl text-foreground">
+          {pick(lang, "Set your nickname", "设置昵称")}
+        </h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {pick(
+            lang,
+            "Progress is saved on this device, per nickname. A new nickname starts a fresh track — everything you already explored stays under the old one.",
+            "进度按昵称保存在这台设备上。换一个昵称会从新的进度开始，之前探索过的仍留在旧昵称下。",
+          )}
+        </p>
+
+        <label className={label} htmlFor="nickname-zh">
+          {pick(lang, "Chinese nickname", "中文昵称")}
+        </label>
+        <input
+          id="nickname-zh"
+          value={zh}
+          autoFocus
+          onChange={(e) => {
+            setZh(e.target.value);
+            setInvalid(false);
+          }}
+          className={field}
+        />
+
+        <label className={label} htmlFor="nickname-en">
+          {pick(lang, "English nickname", "英文昵称")}
+        </label>
+        <input
+          id="nickname-en"
+          value={en}
+          onChange={(e) => {
+            setEn(e.target.value);
+            setInvalid(false);
+          }}
+          className={field}
+        />
+
+        {invalid && (
+          <p className="mt-3 text-[0.72rem] leading-relaxed text-destructive" role="alert">
+            {pick(lang, "Both names are needed.", "两个昵称都要填。")}
+          </p>
+        )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            {pick(lang, "Cancel", "取消")}
+          </Button>
+          <Button type="submit" size="sm">
+            {pick(lang, "Save", "保存")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function WorldMap({
   onHome,
   user,
   onSignOut,
+  onNicknameChange,
+  active = true,
 }: {
   onHome: () => void;
   user: Session;
   onSignOut: () => void;
+  onNicknameChange: (session: Session) => void;
+  /** False while the welcome screen covers the map; the scene then stops drawing. */
+  active?: boolean;
 }) {
   const [lang] = useLang();
   const ui = t(lang);
@@ -158,9 +288,20 @@ export function WorldMap({
       : null,
   );
   const [waited, setWaited] = useState(0);
+  const [wallOpen, setWallOpen] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" && new URLSearchParams(window.location.search).has("badges"),
+  );
+  const [nicknameOpen, setNicknameOpen] = useState(false);
+  // Once the first two islands are finished, the third grows a pond and a collie
+  // drops a bottle into it. The stage survives reloads.
+  const [bottle, setBottle] = useState<BottleStage>(() => readBottle(bottleKey(user)));
+  const [letterOpen, setLetterOpen] = useState(false);
+  const [overviewTick, setOverviewTick] = useState(0);
 
   /** Each visitor carries their own exploration track, keyed by English name. */
   const storeKey = useMemo(() => visitedKey(user), [user]);
+  const bottleStoreKey = useMemo(() => bottleKey(user), [user]);
 
   const markReady = useCallback(() => setPhase("ready"), []);
   const openRegion = useCallback((id: string) => setOpenId(id), []);
@@ -170,6 +311,16 @@ export function WorldMap({
     setPhase("loading");
     setAttempt((a) => a + 1);
   }, []);
+
+  // Switching windows or tabs can make the browser drop the WebGL context; the
+  // canvas then stays blank forever. Rebuild the scene instead of leaving the
+  // visitor with an empty map.
+  const lostTimer = useRef(0);
+  const handleSceneLost = useCallback(() => {
+    window.clearTimeout(lostTimer.current);
+    lostTimer.current = window.setTimeout(retry, 600);
+  }, [retry]);
+  useEffect(() => () => window.clearTimeout(lostTimer.current), []);
 
   useEffect(() => {
     setSupported(hasWebGL());
@@ -198,6 +349,10 @@ export function WorldMap({
   }, [storeKey]);
 
   useEffect(() => {
+    setBottle(readBottle(bottleStoreKey));
+  }, [bottleStoreKey]);
+
+  useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mq.matches);
     const on = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
@@ -207,13 +362,14 @@ export function WorldMap({
 
   useEffect(() => {
     if (!openId) return;
+    recordExplored(user, openId);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenId(null);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openId]);
+  }, [openId, user]);
 
   const finishRegion = useCallback(
-    (id: string) => {
+    (id: string, close = true) => {
       setVisited((prev) => {
         if (prev.includes(id)) return prev;
         const next = [...prev, id];
@@ -224,23 +380,62 @@ export function WorldMap({
         }
         return next;
       });
-      setOpenId(null);
+      // Achievements count a finished task, not an opened page. The album marks
+      // itself through its own completion check, so only the reading areas are
+      // recorded here.
+      if (id !== "collections") recordSection(user, id);
+      if (close) setOpenId(null);
     },
-    [storeKey],
+    [storeKey, user],
   );
 
   const resetProgress = useCallback(() => {
     try {
       localStorage.removeItem(storeKey);
+      localStorage.removeItem(bottleStoreKey);
     } catch {
       /* ignore */
     }
     setVisited([]);
-  }, [storeKey]);
+    setBottle("pending");
+    setLetterOpen(false);
+  }, [storeKey, bottleStoreKey]);
+
+  // The bottle is owed once the first two islands are finished and the map is
+  // actually on screen — never behind a page or the welcome overlay.
+  const bottleDue =
+    bottle === "pending" &&
+    phase === "ready" &&
+    active &&
+    !openId &&
+    !wallOpen &&
+    visited.includes("about") &&
+    visited.includes("gallery");
+
+  const markDelivered = useCallback(() => {
+    setBottle((prev) => {
+      if (prev !== "pending") return prev;
+      writeBottle(bottleStoreKey, "floating");
+      return "floating";
+    });
+  }, [bottleStoreKey]);
+
+  const openLetter = useCallback(() => {
+    setLetterOpen(true);
+    setBottle((prev) => {
+      if (prev !== "read") writeBottle(bottleStoreKey, "read");
+      return "read";
+    });
+  }, [bottleStoreKey]);
+
+  const closeLetter = useCallback(() => {
+    setLetterOpen(false);
+    setOverviewTick((n) => n + 1);
+  }, []);
 
   const seen = visited.length;
   const total = REGIONS.length;
-  const active = openId ? regionById(openId) : undefined;
+  const opened = openId ? regionById(openId) : undefined;
   const activeSeen = openId ? visited.includes(openId) : false;
 
   return (
@@ -262,6 +457,15 @@ export function WorldMap({
               visited={visited}
               onOpenRegion={openRegion}
               onReady={markReady}
+              paused={!active || Boolean(openId) || wallOpen || letterOpen}
+              onContextLost={handleSceneLost}
+              bottleDue={bottleDue}
+              bottleFloating={bottle !== "pending"}
+              bottleUnread={bottle !== "read"}
+              bottleRead={bottle === "read"}
+              onBottleDelivered={markDelivered}
+              onOpenLetter={openLetter}
+              overviewTick={overviewTick}
             />
           </Suspense>
         </SceneBoundary>
@@ -274,7 +478,9 @@ export function WorldMap({
             <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">
               {ui.gathering}
               {waited >= 2 && (
-                <span className="ml-2 normal-case tracking-normal opacity-60 tabular-nums">{waited.toFixed(1)}s</span>
+                <span className="ml-2 normal-case tracking-normal opacity-60 tabular-nums">
+                  {waited.toFixed(1)}s
+                </span>
               )}
             </p>
           </div>
@@ -285,10 +491,18 @@ export function WorldMap({
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
           <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full border border-border/60 bg-background/85 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
             <span>{pick(lang, "The 3D scene is taking its time.", "3D 场景还在准备中。")}</span>
-            <button type="button" onClick={retry} className="underline underline-offset-2 transition hover:text-foreground">
+            <button
+              type="button"
+              onClick={retry}
+              className="underline underline-offset-2 transition hover:text-foreground"
+            >
               {ui.retry}
             </button>
-            <button type="button" onClick={onHome} className="underline underline-offset-2 transition hover:text-foreground">
+            <button
+              type="button"
+              onClick={onHome}
+              className="underline underline-offset-2 transition hover:text-foreground"
+            >
               {ui.home}
             </button>
           </div>
@@ -303,9 +517,37 @@ export function WorldMap({
           Jenia&apos;s World
         </span>
         <div className="pointer-events-auto flex items-center gap-2">
-          <span className="hidden max-w-[8rem] truncate text-xs text-muted-foreground sm:inline">
+          <button
+            type="button"
+            onClick={() => setNicknameOpen(true)}
+            title={pick(lang, "Set nickname", "设置昵称")}
+            aria-label={pick(lang, "Set nickname", "设置昵称")}
+            className="max-w-[6.5rem] truncate rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
+          >
             {lang === "zh" ? user.zh : user.en}
-          </span>
+          </button>
+          <Button
+            variant="glass"
+            size="sm"
+            onClick={() => setWallOpen(true)}
+            aria-label={pick(lang, "Achievement Wall", "徽章墙")}
+            title={pick(lang, "Achievement Wall", "徽章墙")}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden
+            >
+              <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
+              <path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3" />
+              <path d="M12 13v4M8.5 20h7l-1-3h-5l-1 3Z" />
+            </svg>
+            <span className="hidden sm:inline">{pick(lang, "Achievements", "徽章墙")}</span>
+          </Button>
           <LangSwitch />
           <Button variant="glass" size="sm" onClick={onSignOut}>
             {pick(lang, "Sign out", "退出")}
@@ -315,11 +557,7 @@ export function WorldMap({
 
       {phase === "ready" && !openId && (
         <p className="pointer-events-none absolute inset-x-0 bottom-5 z-20 text-center text-xs text-muted-foreground">
-          {seen < total ? (
-            <>{ui.discovered(seen, total)}</>
-          ) : (
-            <>{ui.allAwake}</>
-          )}
+          {seen < total ? <>{ui.discovered(seen, total)}</> : <>{ui.allAwake}</>}
           {seen > 0 && (
             <>
               {" · "}
@@ -335,13 +573,28 @@ export function WorldMap({
         </p>
       )}
 
-      {active && (
+      {opened && (
         <WorldPage
-          region={active}
+          region={opened}
           seen={activeSeen}
           onClose={closePanel}
-          onDone={() => finishRegion(active.id)}
+          onDone={() => finishRegion(opened.id)}
+          onComplete={() => finishRegion(opened.id, false)}
           onHome={onHome}
+          onOpenWall={() => setWallOpen(true)}
+        />
+      )}
+
+      {wallOpen && <AchievementWall user={user} onClose={() => setWallOpen(false)} />}
+
+      {letterOpen && <LetterModal onClose={closeLetter} />}
+
+      {nicknameOpen && (
+        <NicknamePanel
+          user={user}
+          lang={lang}
+          onClose={() => setNicknameOpen(false)}
+          onSaved={onNicknameChange}
         />
       )}
     </div>

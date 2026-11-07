@@ -5,6 +5,7 @@ import { Diag } from "@/components/Diag";
 import { Welcome } from "@/components/Welcome";
 import { WorldMap } from "@/components/WorldMap";
 import { currentSession, signOut, type Session } from "@/lib/user";
+import { recordVisit } from "@/lib/achievements/store";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -42,6 +43,8 @@ function Index() {
 
   useEffect(() => {
     if (!user) return;
+    // One visit per page load, per visitor. A refresh counts; a re-render does not.
+    recordVisit(user);
     // Warm the 3D chunk, then mount the map once and keep it mounted.
     // Tearing the Canvas down on every trip back Home leaks WebGL contexts,
     // and after a few round trips the browser refuses to create a new one —
@@ -71,7 +74,13 @@ function Index() {
           className={inWorld ? "fixed inset-0" : "invisible pointer-events-none fixed inset-0"}
           aria-hidden={!inWorld}
         >
-          <WorldMap onHome={() => setStage("welcome")} user={user} onSignOut={leave} />
+          <WorldMap
+            onHome={() => setStage("welcome")}
+            user={user}
+            onSignOut={leave}
+            onNicknameChange={setUser}
+            active={inWorld}
+          />
         </div>
       )}
       {!inWorld && (

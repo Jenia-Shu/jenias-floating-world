@@ -2,6 +2,8 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
+import { POND, pondWaterLevel } from "@/lib/world/bottle";
+import { Rock } from "./details";
 
 type P3 = [number, number, number];
 
@@ -25,7 +27,13 @@ const G = {
   ball: new THREE.SphereGeometry(1, 12, 10),
 };
 
-type ThemeProps = { shape: IslandShape; reducedMotion: boolean; outward: [number, number] };
+type ThemeProps = {
+  shape: IslandShape;
+  reducedMotion: boolean;
+  outward: [number, number];
+  /** A hidden spot on this island was found. */
+  onEgg?: ((id: string) => void) | undefined;
+};
 
 /** A paused easel: three legs and a tilted canvas. */
 function Easel({ position, rotation = 0, paint = "#8fb3b8" }: { position: P3; rotation?: number; paint?: string }) {
@@ -43,7 +51,7 @@ function Easel({ position, rotation = 0, paint = "#8fb3b8" }: { position: P3; ro
 }
 
 /** Open-air exhibition pavilion. */
-function Gallery({ shape, reducedMotion }: ThemeProps) {
+function Gallery({ shape, reducedMotion, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
   return (
     <group>
@@ -60,12 +68,20 @@ function Gallery({ shape, reducedMotion }: ThemeProps) {
         ))}
         <mesh geometry={G.box} material={M.darkWood} position={[0, 1.15, 0]} scale={[1.78, 0.08, 1.78]} castShadow receiveShadow />
         <mesh geometry={G.box} material={M.wood} position={[0, 1.2, 0]} scale={[1.5, 0.05, 1.5]} />
-        {/* plinth in the middle */}
-        <mesh geometry={G.box} material={M.stone} position={[0, 0.14, 0]} scale={[0.5, 0.28, 0.5]} castShadow receiveShadow />
-        <mesh geometry={G.ball} material={M.glow} position={[0, 0.44, 0]} scale={0.17} castShadow />
-        <mesh geometry={G.ball} material={M.teal} position={[0, 0.52, 0.1]} scale={0.06} />
-        <mesh geometry={G.cone} material={M.clay} position={[0.11, 0.5, -0.06]} rotation={[0, 0, -0.4]} scale={0.06} />
-        {!reducedMotion && <PlinthHalo y={0.44} />}
+        {/* plinth in the middle — the glow ball hides a small secret */}
+        <group
+          onClick={(e) => {
+            if (!onEgg) return;
+            e.stopPropagation();
+            onEgg("gallery-plinth");
+          }}
+        >
+          <mesh geometry={G.box} material={M.stone} position={[0, 0.14, 0]} scale={[0.5, 0.28, 0.5]} castShadow receiveShadow />
+          <mesh geometry={G.ball} material={M.glow} position={[0, 0.44, 0]} scale={0.17} castShadow />
+          <mesh geometry={G.ball} material={M.teal} position={[0, 0.52, 0.1]} scale={0.06} />
+          <mesh geometry={G.cone} material={M.clay} position={[0.11, 0.5, -0.06]} rotation={[0, 0, -0.4]} scale={0.06} />
+          {!reducedMotion && <PlinthHalo y={0.44} />}
+        </group>
       </group>
       <Easel position={[-1.35, g(-1.35, 0.55), 0.55]} rotation={0.7} paint="#c9a882" />
       <Easel position={[1.25, g(1.25, -0.6), -0.6]} rotation={-0.5} paint="#8fb3b8" />
@@ -88,10 +104,58 @@ function PlinthHalo({ y }: { y: number }) {
 }
 
 /** Round reading tower plus a listening booth. */
-function Collections({ shape, reducedMotion }: ThemeProps) {
+function Collections({ shape, reducedMotion, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
+  const water = pondWaterLevel(shape);
   return (
     <group>
+      {/* The pond is carved into the island's shape; this is only the water. */}
+      <group position={[POND.x, water, POND.z]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.92, 1]} receiveShadow>
+          <circleGeometry args={[POND.r, 40]} />
+          <meshStandardMaterial color="#9fcbe0" roughness={0.12} metalness={0.15} transparent opacity={0.9} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.15, 0.008, -0.13]}>
+          <circleGeometry args={[0.075, 16]} />
+          <meshStandardMaterial color="#7f9a6a" roughness={0.8} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-0.22, 0.008, 0.15]} scale={0.78}>
+          <circleGeometry args={[0.075, 16]} />
+          <meshStandardMaterial color="#8aa574" roughness={0.8} side={THREE.DoubleSide} />
+        </mesh>
+        {/* reeds at the water's edge */}
+        {[2.35, 3.35, 4.55].map((a, i) => {
+          const x = Math.cos(a) * (POND.r + 0.04);
+          const z = Math.sin(a) * (POND.r + 0.04);
+          return (
+            <group key={i} position={[x, 0, z]} rotation={[0, -a, 0]}>
+              <mesh position={[0, 0.12, 0]} rotation={[0.08, 0, 0.12]} castShadow>
+                <cylinderGeometry args={[0.006, 0.009, 0.26, 5]} />
+                <meshStandardMaterial color="#8a9f78" roughness={0.9} />
+              </mesh>
+              <mesh position={[0.03, 0.21, 0.01]} rotation={[0.08, 0, 0.18]} castShadow>
+                <cylinderGeometry args={[0.004, 0.007, 0.2, 5]} />
+                <meshStandardMaterial color="#93a882" roughness={0.9} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+      {/* rim stones, like the main island's pond */}
+      {Array.from({ length: 9 }, (_, i) => {
+        const a = (i / 9) * Math.PI * 2 + 0.3;
+        const x = POND.x + Math.cos(a) * (POND.r + 0.12);
+        const z = POND.z + Math.sin(a) * (POND.r + 0.12);
+        return (
+          <Rock
+            key={i}
+            position={[x, surfaceHeight(x, z, shape), z]}
+            scale={0.085 + ((i * 3) % 4) * 0.012}
+            rot={i * 1.3}
+          />
+        );
+      })}
+
       <group position={[0, g(0, 0), 0]}>
         <mesh geometry={G.cyl} material={M.stone} position={[0, 0.72, 0]} scale={[0.52, 1.45, 0.52]} castShadow receiveShadow />
         <mesh geometry={G.cyl} material={M.darkWood} position={[0, 1.44, 0]} scale={[0.56, 0.06, 0.56]} />
@@ -113,7 +177,14 @@ function Collections({ shape, reducedMotion }: ThemeProps) {
       </group>
 
       {/* listening booth: a low disc with a horn and a spinning record */}
-      <group position={[-1.35, g(-1.35, 0.85), 0.85]}>
+      <group
+        position={[-1.35, g(-1.35, 0.85), 0.85]}
+        onClick={(e) => {
+          if (!onEgg) return;
+          e.stopPropagation();
+          onEgg("listening-booth");
+        }}
+      >
         <mesh geometry={G.cyl} material={M.darkWood} position={[0, 0.12, 0]} scale={[0.3, 0.24, 0.3]} castShadow receiveShadow />
         <mesh geometry={G.cyl} material={M.ink} position={[0, 0.25, 0]} scale={[0.18, 0.012, 0.18]} />
         {!reducedMotion && <SpinningDisc y={0.27} />}
@@ -255,7 +326,7 @@ function CoasterCar({ curve, reducedMotion }: { curve: THREE.CatmullRomCurve3; r
 }
 
 /** Lighthouse, swing and a little tent. */
-function Fun({ shape, reducedMotion }: ThemeProps) {
+function Fun({ shape, reducedMotion, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
   return (
     <group>
@@ -279,7 +350,15 @@ function Fun({ shape, reducedMotion }: ThemeProps) {
 
       <mesh geometry={G.cone} material={M.teal} position={[-0.95, g(-0.95, -0.85) + 0.42, -0.85]} scale={[0.34, 0.82, 0.34]} castShadow />
       <mesh geometry={G.cone} material={M.white} position={[-0.95, g(-0.95, -0.85) + 0.63, -0.85]} scale={[0.16, 0.4, 0.16]} />
-      <FerrisWheel position={[-1.02, g(-1.02, 0.98), 0.98]} reducedMotion={reducedMotion} />
+      <group
+        onClick={(e) => {
+          if (!onEgg) return;
+          e.stopPropagation();
+          onEgg("ferris-wheel");
+        }}
+      >
+        <FerrisWheel position={[-1.02, g(-1.02, 0.98), 0.98]} reducedMotion={reducedMotion} />
+      </group>
       <Coaster shape={shape} reducedMotion={reducedMotion} />
     </group>
   );
@@ -313,7 +392,7 @@ function SwingSeat() {
 }
 
 /** A small jetty reaching out over the void, with a rowing boat and a mailbox. */
-function Community({ shape, reducedMotion, outward }: ThemeProps) {
+function Community({ shape, reducedMotion, outward, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
   const [ox, oz] = outward;
   const rim = shape.radius * 0.92;
@@ -355,7 +434,14 @@ function Community({ shape, reducedMotion, outward }: ThemeProps) {
       </group>
 
       {/* mailbox */}
-      <group position={[ox * 0.55, g(ox * 0.55, oz * 0.55), -oz * 0.75]}>
+      <group
+        position={[ox * 0.55, g(ox * 0.55, oz * 0.55), -oz * 0.75]}
+        onClick={(e) => {
+          if (!onEgg) return;
+          e.stopPropagation();
+          onEgg("mailbox");
+        }}
+      >
         <mesh geometry={G.cyl} material={M.darkWood} position={[0, 0.3, 0]} scale={[0.032, 0.6, 0.032]} castShadow />
         <mesh geometry={G.box} material={M.clay} position={[0, 0.68, 0]} scale={[0.19, 0.16, 0.13]} castShadow />
         <mesh geometry={G.box} material={M.ink} position={[0, 0.68, 0.07]} scale={[0.13, 0.02, 0.01]} />

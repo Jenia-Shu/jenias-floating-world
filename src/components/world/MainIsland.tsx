@@ -159,14 +159,17 @@ const BARE_ROCKS: { p: [number, number, number]; s: number; r: number }[] = [
 
 type Props = {
   reducedMotion?: boolean | undefined;
-  onOpen: () => void;
+  /** Clicking the island frames it; it never opens a page by itself. */
+  onSelect: () => void;
   hovered: boolean;
   setHovered: (h: boolean) => void;
   /** When false the island is bare rock; visiting About Me brings it to life. */
   revealed: boolean;
+  /** A small hidden thing on the main island was found. */
+  onEgg?: ((id: string) => void) | undefined;
 };
 
-export function MainIsland({ reducedMotion, onOpen, hovered, setHovered, revealed }: Props) {
+export function MainIsland({ reducedMotion, onSelect, hovered, setHovered, revealed, onEgg }: Props) {
   const cottage = { x: -1.7, z: -1.1, rot: 0.55 };
   const ring = useRef<THREE.Mesh>(null);
 
@@ -264,7 +267,7 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered, reveale
       grass={revealed ? "#9cc58a" : "#b7c2ae"}
       bobPhase={0}
       reducedMotion={reducedMotion}
-      onSelect={onOpen}
+      onSelect={onSelect}
       onHover={setHovered}
     >
       {/* soft champagne halo marking the active region */}
@@ -285,9 +288,17 @@ export function MainIsland({ reducedMotion, onOpen, hovered, setHovered, reveale
 
       {revealed && (
         <>
-          <Grow position={[cottage.x, h(cottage.x, cottage.z) - 0.04, cottage.z]} reducedMotion={reducedMotion}>
-            <Cottage position={[0, 0, 0]} rotation={cottage.rot} />
-          </Grow>
+          <group
+            onClick={(e) => {
+              if (!onEgg) return;
+              e.stopPropagation();
+              onEgg("cottage-door");
+            }}
+          >
+            <Grow position={[cottage.x, h(cottage.x, cottage.z) - 0.04, cottage.z]} reducedMotion={reducedMotion}>
+              <Cottage position={[0, 0, 0]} rotation={cottage.rot} />
+            </Grow>
+          </group>
 
           <Grow position={[P.x, WATER_LEVEL, P.z]} reducedMotion={reducedMotion}>
             <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.9, 1]} receiveShadow>
