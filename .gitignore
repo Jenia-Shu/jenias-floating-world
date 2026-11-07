@@ -40,3 +40,6 @@ dist-ssr
 # (a public git history cannot be truly undone). Remove this line only
 # if the user explicitly asks to carry the photo with the repository.
 docs/assets/
+
+# Local verification scripts / headless-browser profiles (not shipped).
+.tmp-verify/

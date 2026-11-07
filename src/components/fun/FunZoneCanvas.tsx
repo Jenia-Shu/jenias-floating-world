@@ -11,8 +11,10 @@ import * as THREE from "three";
 import type { GameId } from "@/lib/fun/funZone";
 import { ParkScene } from "./scene/ParkScene";
 import { ExplorerScene, type ExplorerStage } from "./scene/ExplorerScene";
+import { MazeScene, type MazeSceneProps } from "./games/tiny-maze/MazeScene";
 
-export type FunZoneMode = "park" | "game";
+/** `maze` owns the camera while it is mounted, so CameraRig stands down. */
+export type FunZoneMode = "park" | "game" | "maze";
 
 export type ExplorerProps = Omit<ComponentProps<typeof ExplorerScene>, "reducedMotion">;
 
@@ -25,6 +27,8 @@ type Props = {
   justUnlocked: GameId | null;
   onSelect: (id: GameId) => void;
   explorer: ExplorerProps | null;
+  maze: MazeSceneProps | null;
+  mazeKey: number;
 };
 
 type Shot = { pos: [number, number, number]; target: [number, number, number] };
@@ -36,7 +40,7 @@ const CHAPTER: Shot = { pos: [0, 4.45, 8.4], target: [0, 1.0, 0] };
 const RESULT: Shot = { pos: [0, 4.7, 8.8], target: [0, 1.0, 0] };
 
 function shotFor(mode: FunZoneMode, stage: ExplorerStage | null): Shot {
-  if (mode === "park") return PARK;
+  if (mode === "park" || mode === "maze") return PARK;
   switch (stage) {
     case "question":
       return CLOSE;
@@ -82,6 +86,8 @@ export function FunZoneCanvas({
   justUnlocked,
   onSelect,
   explorer,
+  maze,
+  mazeKey,
 }: Props) {
   return (
     <Canvas
@@ -116,7 +122,7 @@ export function FunZoneCanvas({
       />
       <directionalLight position={[-8, 5, -6]} intensity={0.42} color="#cfe0ee" />
       <directionalLight position={[5, 3, 8]} intensity={0.3} color="#f5e6c8" />
-      <CameraRig mode={mode} stage={stage} reducedMotion={reducedMotion} />
+      {mode !== "maze" && <CameraRig mode={mode} stage={stage} reducedMotion={reducedMotion} />}
 
       {mode === "park" ? (
         <ParkScene
@@ -125,6 +131,8 @@ export function FunZoneCanvas({
           onSelect={onSelect}
           reducedMotion={reducedMotion}
         />
+      ) : mode === "maze" ? (
+        maze && <MazeScene key={mazeKey} {...maze} />
       ) : (
         explorer && <ExplorerScene {...explorer} reducedMotion={reducedMotion} />
       )}

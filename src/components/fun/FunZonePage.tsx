@@ -24,6 +24,7 @@ import {
 import { playSound, setSoundEnabled, stopAmbience } from "@/lib/fun/sound";
 import { FunZoneCanvas, type FunZoneMode } from "./FunZoneCanvas";
 import { useExplorerGame, WorldExplorerGame } from "./games/world-explorer/WorldExplorerGame";
+import { useTinyMazeGame, TinyMazeGame } from "./games/tiny-maze/TinyMazeGame";
 import type { ExplorerStage } from "./scene/ExplorerScene";
 import "./fun.css";
 
@@ -147,10 +148,20 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
       }
       setLockedHint(null);
       playSound("tap");
-      setMode("game");
+      setMode(id === "tiny-maze" ? "maze" : "game");
     },
     [state],
   );
+
+  const maze = useTinyMazeGame({
+    state,
+    commit,
+    onUnlocked,
+    lang,
+    reducedMotion,
+    onExit: enterPark,
+    active: mode === "maze",
+  });
 
   const toggleSound = () => {
     const next = !state.sound;
@@ -194,6 +205,8 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
               justUnlocked={justUnlocked}
               onSelect={select}
               explorer={mode === "game" ? game.view.scene : null}
+              maze={mode === "maze" ? maze.view.scene : null}
+              mazeKey={maze.view.scene.runKey}
             />
           </div>
         </SceneBoundary>
@@ -206,8 +219,8 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
       <div className="fz-vignette" />
 
       <header className="fz-header">
-        <button type="button" className="fz-chip" onClick={mode === "game" ? enterPark : onClose}>
-          <span aria-hidden>←</span> {mode === "game" ? V("Fun Zone", "乐园") : V("Map", "地图")}
+        <button type="button" className="fz-chip" onClick={mode !== "park" ? enterPark : onClose}>
+          <span aria-hidden>←</span> {mode !== "park" ? V("Fun Zone", "乐园") : V("Map", "地图")}
         </button>
         <div className="fz-header-right">
           <LangSwitch />
@@ -296,6 +309,10 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
 
       {mode === "game" && (
         <WorldExplorerGame game={game} lang={lang} onExit={enterPark} />
+      )}
+
+      {mode === "maze" && (
+        <TinyMazeGame view={maze.view} actions={maze.actions} lang={lang} />
       )}
 
       {!supported && (

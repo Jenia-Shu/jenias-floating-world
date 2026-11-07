@@ -19,7 +19,8 @@ export type RewardId =
   | "explorer-star"
   | "special-star"
   | "perfect-card"
-  | "first-explorer-badge";
+  | "first-explorer-badge"
+  | "garden-path-ticket";
 
 export type Bi = { en: string; zh: string };
 export const bi = (en: string, zh: string): Bi => ({ en, zh });
@@ -62,7 +63,7 @@ export const GAMES: GameDef[] = [
     num: "02",
     name: bi("Tiny Maze", "迷宫入口"),
     tagline: bi("Find your way in", "走进迷宫"),
-    available: false,
+    available: true,
     requires: "world-explorer",
     lockedHint: bi("Finish the last stop first.", "先完成上一站"),
   },
@@ -124,6 +125,12 @@ export const REWARDS: RewardDef[] = [
     glyph: "badge",
     rare: true,
   },
+  {
+    id: "garden-path-ticket",
+    name: bi("Garden Path Ticket", "花园小径纪念票"),
+    note: bi("A keepsake from the first little maze.", "第一座小迷宫的纪念票。"),
+    glyph: "ticket",
+  },
 ];
 
 export const rewardById = (id: RewardId): RewardDef => REWARDS.find((r) => r.id === id)!;
@@ -146,6 +153,26 @@ export type RoundState = {
   startedAt: number;
 };
 
+/** Tiny Maze chapter history. Keyed by chapter id so adding chapters is free. */
+export type MazeLevelRecord = {
+  completed: boolean;
+  challenges: number;
+  bestStars: number;
+  chest: boolean;
+  /** Historical best, never lowered by a later replay. */
+  starMask: boolean[];
+};
+
+export type MazeProgress = { levels: Record<string, MazeLevelRecord> };
+
+export const emptyMazeLevel = (): MazeLevelRecord => ({
+  completed: false,
+  challenges: 0,
+  bestStars: 0,
+  chest: false,
+  starMask: [false, false, false],
+});
+
 export type FunState = {
   v: 1;
   completed: Partial<Record<GameId, boolean>>;
@@ -161,6 +188,7 @@ export type FunState = {
     lastSignature: string;
     round: RoundState | null;
   };
+  maze: MazeProgress;
 };
 
 export function emptyFunState(): FunState {
@@ -173,6 +201,7 @@ export function emptyFunState(): FunState {
     rewards: [],
     perfectStreak: 0,
     explorer: { best: 0, challenges: 0, lastSignature: "", round: null },
+    maze: { levels: {} },
   };
 }
 
@@ -186,6 +215,32 @@ function asBoolMap(value: unknown): Partial<Record<GameId, boolean>> {
   const out: Partial<Record<GameId, boolean>> = {};
   for (const g of GAMES) if ((value as Record<string, unknown>)[g.id] === true) out[g.id] = true;
   return out;
+}
+
+/**
+ * Missing or malformed chapter data falls back to an empty record, so a
+ * visitor who played before Tiny Maze existed keeps every older reward.
+ */
+function readMaze(value: unknown): MazeProgress {
+  const levels: Record<string, MazeLevelRecord> = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { levels };
+  const src = (value as Record<string, unknown>)["levels"];
+  if (!src || typeof src !== "object" || Array.isArray(src)) return { levels };
+  for (const [key, raw] of Object.entries(src as Record<string, unknown>)) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const r = raw as Record<string, unknown>;
+    const mask = Array.isArray(r["starMask"])
+      ? (r["starMask"] as unknown[]).slice(0, 3).map((x) => x === true)
+      : [false, false, false];
+    levels[key] = {
+      completed: r["completed"] === true,
+      challenges: typeof r["challenges"] === "number" ? Math.max(0, Math.floor(r["challenges"])) : 0,
+      bestStars: typeof r["bestStars"] === "number" ? clamp(r["bestStars"], 0, 3) : 0,
+      chest: r["chest"] === true,
+      starMask: [mask[0] ?? false, mask[1] ?? false, mask[2] ?? false],
+    };
+  }
+  return { levels };
 }
 
 /**
@@ -252,6 +307,7 @@ export function readFunState(user?: Session | string): FunState {
         lastSignature: typeof ex["lastSignature"] === "string" ? ex["lastSignature"] : "",
         round: validRound,
       },
+      maze: readMaze(o["maze"]),
     };
   } catch {
     return base;
