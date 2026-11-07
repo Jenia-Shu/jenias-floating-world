@@ -8,10 +8,12 @@ import { Island } from "./Island";
 import { MainIsland } from "./MainIsland";
 import { Cloud, Flowers, LockMarker, Mushroom, Rock, Tree } from "./details";
 import { Grow } from "./Grow";
+import { ShadowTicker } from "./ShadowTicker";
 import { Collie } from "./collie";
 import { IslandTheme } from "./islands";
 import { CollieDelivery } from "./CollieDelivery";
 import { POND, POND_DIP } from "@/lib/world/bottle";
+import { sceneSettings } from "@/lib/world/quality";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
 import { isUnlocked } from "@/lib/world/regions";
 import { pick, useLang } from "@/lib/i18n";
@@ -547,6 +549,7 @@ export default function WorldScene({
   onOpenLetter,
   overviewTick = 0,
 }: Props) {
+  const quality = sceneSettings().world;
   const [lang] = useLang();
   const [hovered, setHovered] = useState(false);
   /** The island the camera is currently framing. Pages open from the label button only. */
@@ -754,7 +757,7 @@ export default function WorldScene({
     >
       <Canvas
         shadows
-        dpr={[1, 1.25]}
+        dpr={quality.dpr}
         frameloop={paused ? "never" : "always"}
         onPointerMissed={(e) => {
           const p = press.current;
@@ -768,7 +771,7 @@ export default function WorldScene({
         // "default" lets the browser keep the canvas on the GPU it started on.
         // Forcing "high-performance" makes laptops switch GPUs when the window
         // moves, and the switch is a common cause of a lost WebGL context.
-        gl={{ antialias: true, alpha: true, powerPreference: "default" }}
+        gl={{ antialias: quality.antialias, alpha: true, powerPreference: "default" }}
         camera={{
           position: reducedMotion ? END.toArray() : START.toArray(),
           fov: 40,
@@ -778,6 +781,11 @@ export default function WorldScene({
         onCreated={({ gl, scene, camera }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
+          // The sun is static. Recomputing the depth map on every frame draws
+          // every shadow caster a second time; ShadowTicker refreshes it every
+          // N frames instead (imperceptible at 0.13 rad/s ferris-wheel speed).
+          gl.shadowMap.autoUpdate = quality.shadowEvery <= 1;
+          gl.shadowMap.needsUpdate = true;
           // A lost context leaves a blank canvas that looks like a frozen page.
           // Swallow the default behaviour so the browser may restore it, and let
           // the map remount a fresh scene instead of sitting there empty.
@@ -799,6 +807,7 @@ export default function WorldScene({
         style={{ touchAction: "none" }}
       >
         <fog attach="fog" args={["#dfe8ec", 32, 80]} />
+        <ShadowTicker every={quality.shadowEvery} />
         <hemisphereLight args={["#f1f6f8", "#c7d2bf", 0.75]} />
         <ambientLight intensity={0.18} />
         <directionalLight
@@ -806,7 +815,7 @@ export default function WorldScene({
           intensity={1.7}
           color="#fff1dc"
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[quality.shadowSize, quality.shadowSize]}
           shadow-camera-left={-9}
           shadow-camera-right={9}
           shadow-camera-top={9}
