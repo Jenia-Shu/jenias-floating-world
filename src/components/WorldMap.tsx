@@ -293,8 +293,8 @@ export function WorldMap({
       typeof window !== "undefined" && new URLSearchParams(window.location.search).has("badges"),
   );
   const [nicknameOpen, setNicknameOpen] = useState(false);
-  // Once the first two islands are finished, the third grows a pond and a collie
-  // drops a bottle into it. The stage survives reloads.
+  // Once the first three islands are finished, the Message Island grows a tide
+  // pool and a collie drops a bottle into it. The stage survives reloads.
   const [bottle, setBottle] = useState<BottleStage>(() => readBottle(bottleKey(user)));
   const [letterOpen, setLetterOpen] = useState(false);
   const [overviewTick, setOverviewTick] = useState(0);
@@ -401,8 +401,9 @@ export function WorldMap({
     setLetterOpen(false);
   }, [storeKey, bottleStoreKey]);
 
-  // The bottle is owed once the first two islands are finished and the map is
-  // actually on screen — never behind a page or the welcome overlay.
+  // The bottle is owed once the three islands before the Message Island are
+  // finished and the map is actually on screen — never behind a page or the
+  // welcome overlay.
   const bottleDue =
     bottle === "pending" &&
     phase === "ready" &&
@@ -410,7 +411,8 @@ export function WorldMap({
     !openId &&
     !wallOpen &&
     visited.includes("about") &&
-    visited.includes("gallery");
+    visited.includes("gallery") &&
+    visited.includes("collections");
 
   const markDelivered = useCallback(() => {
     setBottle((prev) => {
@@ -427,6 +429,13 @@ export function WorldMap({
       return "read";
     });
   }, [bottleStoreKey]);
+
+  // The Message Island ends with the collie leading into the Fun Zone. Mark
+  // the chapter finished first so the visit chain stays honest.
+  const followToFun = useCallback(() => {
+    finishRegion("community", false);
+    setOpenId("fun");
+  }, [finishRegion]);
 
   const closeLetter = useCallback(() => {
     setLetterOpen(false);
@@ -582,6 +591,8 @@ export function WorldMap({
           onComplete={() => finishRegion(opened.id, false)}
           onHome={onHome}
           onOpenWall={() => setWallOpen(true)}
+          onOpenLetter={openLetter}
+          onFollow={followToFun}
         />
       )}
 

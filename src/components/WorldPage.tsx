@@ -3,6 +3,7 @@ import { AboutPage } from "@/components/about/AboutPage";
 import { CollectionsPage } from "@/components/collections/CollectionsPage";
 import { GalleryPage } from "@/components/gallery/GalleryPage";
 import { LangSwitch } from "@/components/LangSwitch";
+import { MessageIslandPage } from "@/components/message/MessageIslandPage";
 import { pick, t, useLang } from "@/lib/i18n";
 import type { RegionMeta } from "@/lib/world/regions";
 
@@ -16,6 +17,10 @@ type Props = {
   onComplete?: (() => void) | undefined;
   /** Opens the Achievement Wall from inside the Fun Zone. */
   onOpenWall?: (() => void) | undefined;
+  /** Reopens the drifting-bottle letter from the Message Island. */
+  onOpenLetter: () => void;
+  /** The collie leads the visitor across the bridge into the Fun Zone. */
+  onFollow: () => void;
 };
 
 /** Full-screen reading surface for one island. The map keeps rendering behind it. */
@@ -27,6 +32,8 @@ export function WorldPage({
   onHome,
   onComplete,
   onOpenWall,
+  onOpenLetter,
+  onFollow,
 }: Props) {
   const [lang] = useLang();
   const ui = t(lang);
@@ -48,6 +55,22 @@ export function WorldPage({
         onDone={onDone}
         onHome={onHome}
         onComplete={onComplete}
+      />
+    );
+  }
+
+  // A Little Message / 一封信的岛 has its own chapter page: the letter is a
+  // keepsake and the ending hands the story over to the Fun Zone.
+  if (region.id === "community") {
+    return (
+      <MessageIslandPage
+        region={region}
+        seen={seen}
+        onClose={onClose}
+        onDone={onDone}
+        onHome={onHome}
+        onOpenLetter={onOpenLetter}
+        onFollow={onFollow}
       />
     );
   }

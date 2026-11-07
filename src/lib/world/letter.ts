@@ -1,6 +1,11 @@
 /**
  * The letter inside the drifting bottle. Kept in its own file so the copy can
  * change without touching the delivery animation or the modal.
+ *
+ * The Chinese text is the version the user confirmed on 2026-11-07 (see
+ * `docs/漂流瓶岛-需求原档.md`, end of file). The English paragraphs are a
+ * faithful translation of that text, written so the bilingual switch has
+ * something to show — replace them if a second original is wanted.
  */
 
 export type Letter = {
@@ -11,22 +16,31 @@ export type Letter = {
 };
 
 export const LETTER: Letter = {
-  title: { en: "A letter from the water", zh: "一封从水里捞起的信" },
-  kicker: { en: "Found in the pond, third island", zh: "在第三座岛的水池里捡到" },
+  title: { en: "A LETTER FROM JENIA'S WORLD", zh: "一封来自 Jenia's World 的信" },
+  kicker: { en: "Someone left you a message", zh: "有人给你留下了一封信" },
   body: {
     en: [
-      "Hello, you. If this reached you, the bottle did its job.",
-      "By now you've walked two islands, and the third one grew a pond while you weren't looking. That is how this place works — it keeps changing when someone pays attention.",
-      "Everything I could tell you is already out on the map: what I make, what I keep, what is still waking up. So I'll only say one thing here.",
-      "Thank you for walking slowly. Most of the world asks for speed; this one would rather you stayed a while.",
-      "Take the letter with you, or leave it in the water. It will be here either way.",
+      "Dear Explorer,",
+      "I'm glad you found your way here.",
+      "Maybe you stumbled upon this place by accident, or maybe you just wanted to see what the next island was hiding.",
+      "Either way, welcome to my little world.",
+      "I've always thought the interesting part of a world isn't only the scenery that's already been found, but the paths not yet walked, the people not yet met, and the small surprises that happen by chance.",
+      "You don't need to hurry toward an ending, and you don't have to explore by anyone's rules. If you like something, stay a little longer. If something makes you curious, go and look.",
+      "I hope this little world brings you a bit of joy, and a few surprises you didn't see coming.",
+      "After all, life shouldn't only be about the destination.",
+      "Sometimes the way there is the view worth keeping.",
+      "May you always stay curious.",
     ],
     zh: [
-      "你好呀。你读到这句话，说明瓶子找到你了。",
-      "到这会儿，你已经走过两座岛；第三座岛在你没留意的时候，悄悄长出了一个水池。这里就是这样——有人在看的时候，它就会变。",
-      "我能讲的事，地图上都已经写了：我做了什么、留着什么、还有什么在慢慢醒过来。所以这封信里，我只说一件事。",
-      "谢谢你走得这么慢。外面的世界大多在催，而这里更希望你多待一会儿。",
-      "这封信你可以带走，也可以留在水里。反正它都会在这里。",
+      "很高兴你能来到这里。",
+      "也许你是偶然发现了这个地方，也许你只是想看看，下一座岛上究竟藏着什么。",
+      "不管怎样，欢迎来到我的小小世界。",
+      "我一直觉得，世界有趣的地方，不只是那些已经被发现的风景，还有那些尚未走过的路、没有见过的人，以及偶然发生的小小惊喜。",
+      "你不必急着找到终点，也不需要按照某种标准去探索。喜欢什么，就多停留一会儿；遇到好奇的东西，就去看看。",
+      "希望这个小小的世界，能给你带来一点快乐，也能让你发现一些意料之外的惊喜。",
+      "毕竟，生活不应该只有目的地。",
+      "有时候，沿途本身就是值得收藏的风景。",
+      "愿你一直保有好奇心。",
     ],
   },
   signature: "Jenia",

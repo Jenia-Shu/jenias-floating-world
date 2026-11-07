@@ -443,8 +443,8 @@ export const BADGES: BadgeDef[] = [
       zh: "五个区域，各有各的小任务——不只是打开过，而是真的做完。",
     },
     condition: {
-      en: "Finish the exploration task in every main area: read My World, walk the Gallery, read every album card, open the Fun Zone, and visit the Community.",
-      zh: "完成每个主要区域的探索任务：读我的世界、走完作品集、翻完收藏册、进入乐园、到访留言区。",
+      en: "Finish the exploration task in every main area: read My World, walk the Gallery, read every album card, open the Fun Zone, and visit A Little Message.",
+      zh: "完成每个主要区域的探索任务：读我的世界、走完作品集、翻完收藏册、进入乐园、到访一封信的岛。",
     },
     line: {
       en: "One hundred percent. The whole world, awake.",

@@ -5,11 +5,7 @@ import { CollieBody } from "./collie";
 import { POND, pondWaterLevel } from "@/lib/world/bottle";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
 
-/** The collections island's resting transform (same values as WorldScene). */
-const ISLAND = { x: 8.5, y: 1.1, z: -10 };
-/** Same slow bob the Island component applies, so the dog rides the island. */
-const BOB_PHASE = 2.6;
-
+/** The island transform comes from WorldScene so the dog rides the exact island. */
 const RUN_IN = 1.9;
 const LEAVE = 1.6;
 const DROP_AT = 2.35;
@@ -29,6 +25,10 @@ const easeInOut = (p: number) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2,
 
 type Props = {
   shape: IslandShape;
+  /** World position of the island this delivery plays on. */
+  position: [number, number, number];
+  /** Its bob phase — the dog must rise and fall with the ground. */
+  bobPhase: number;
   /** Run the delivery from the start. */
   play: boolean;
   /** The bottle is already in the water (including while the delivery runs). */
@@ -42,14 +42,16 @@ type Props = {
 };
 
 /**
- * The collie brings the bottle across, drops it into the third island's pond
- * and sits there wagging until the letter has been read — then it trots off.
+ * The collie brings the bottle across, drops it into the Message Island's tide
+ * pool and sits there wagging until the letter has been read — then it trots off.
  *
  * Times are seconds from the start of `play`: dropped at 2.35, in the water at
  * 2.9, sitting by 3.3; after that it waits for `exit`.
  */
 export function CollieDelivery({
   shape,
+  position,
+  bobPhase,
   play,
   delivered,
   exit,
@@ -108,9 +110,9 @@ export function CollieDelivery({
     const step = Math.min(dt, 0.05);
 
     if (root.current) {
-      const bob = reducedMotion ? 0 : Math.sin(t * 0.45 + BOB_PHASE) * 0.12;
-      root.current.position.set(ISLAND.x, ISLAND.y + bob, ISLAND.z);
-      root.current.rotation.y = reducedMotion ? 0 : Math.sin(t * 0.12 + BOB_PHASE) * 0.02;
+      const bob = reducedMotion ? 0 : Math.sin(t * 0.45 + bobPhase) * 0.12;
+      root.current.position.set(position[0], position[1] + bob, position[2]);
+      root.current.rotation.y = reducedMotion ? 0 : Math.sin(t * 0.12 + bobPhase) * 0.02;
     }
 
     if (play && started.current === null) started.current = t + START_DELAY;
@@ -271,7 +273,7 @@ export function CollieDelivery({
   });
 
   return (
-    <group ref={root} position={[ISLAND.x, ISLAND.y, ISLAND.z]}>
+    <group ref={root} position={position}>
       <group ref={dog} name="delivery-dog" visible={!readAtMount.current && (delivered || play)} scale={0.95}>
         <CollieBody body={body} head={head} tail={tail} legs={legs} />
       </group>

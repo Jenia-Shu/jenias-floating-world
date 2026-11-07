@@ -15,6 +15,9 @@ export type RegionMeta = {
  * at a time instead of all at once.
  *
  * `about` is the main island itself — its panel holds the My World sections.
+ * `community` is the Message Island (A Little Message): a drifting-bottle
+ * chapter that ends with the collie leading the visitor into `fun`.
+ * Keep that pair adjacent — the story depends on it.
  */
 export const REGIONS: RegionMeta[] = [
   {
@@ -80,6 +83,42 @@ export const REGIONS: RegionMeta[] = [
     ],
   },
   {
+    id: "community",
+    name: "A Little Message",
+    nameZh: "一封信的岛",
+    kicker: "A little message across the world",
+    kickerZh: "漂过海来的一封信",
+    // The reading surface is a dedicated page (MessageIslandPage). These
+    // sections stay as a plain-language fallback / map of the island's scenes.
+    sections: [
+      {
+        id: "shore",
+        title: "The Shore",
+        body: "Shells, driftwood and shallow waves. A border collie waits here with a bottle in her mouth.",
+      },
+      {
+        id: "letter",
+        title: "The Letter",
+        body: "A letter from Jenia's World, kept in the little wooden box so it can be opened again.",
+      },
+      {
+        id: "post",
+        title: "Message Post",
+        body: "A tiny wooden post office with maps, paper, bottles and letters that were never sent.",
+      },
+      {
+        id: "lighthouse",
+        title: "The Lighthouse",
+        body: "A white lighthouse on the highest point, its beam turning slowly over the clouds and the other islands.",
+      },
+      {
+        id: "bridge",
+        title: "The Bridge",
+        body: "A wooden bridge leading into the mist. Follow the collie and it opens onto the Fun Zone.",
+      },
+    ],
+  },
+  {
     id: "fun",
     name: "Fun Zone",
     nameZh: "乐园",
@@ -95,25 +134,6 @@ export const REGIONS: RegionMeta[] = [
         id: "badges",
         title: "Badges",
         body: "[Placeholder] Achievements visitors collect by wandering the islands and finding secrets.",
-      },
-    ],
-  },
-  {
-    id: "community",
-    name: "Community",
-    nameZh: "留言",
-    kicker: "Say hello",
-    kickerZh: "打个招呼",
-    sections: [
-      {
-        id: "guestbook",
-        title: "Guestbook",
-        body: "[Placeholder] A guestbook, once there's a backend to hold it. No sign-in required.",
-      },
-      {
-        id: "contact",
-        title: "Contact",
-        body: "[Placeholder] How to reach me — links and handles, only the ones meant to be public.",
       },
     ],
   },

@@ -12,7 +12,7 @@ import { lifeSpan } from "./life";
 import type { AchievementStats, AchievementState } from "./types";
 
 /** The five main areas, each with a real task behind its tick. */
-export const SECTIONS = ["about", "gallery", "collections", "fun", "community"] as const;
+export const SECTIONS = ["about", "gallery", "collections", "community", "fun"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 export function buildStats(

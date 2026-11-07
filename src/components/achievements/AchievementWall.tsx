@@ -599,14 +599,14 @@ export function AchievementWall({ user, onClose }: { user: Session; onClose: () 
                         gallery: "Gallery",
                         collections: "Collections",
                         fun: "Fun Zone",
-                        community: "Community",
+                        community: "A Little Message",
                       }[id],
                       {
                         about: "我的世界",
                         gallery: "作品集",
                         collections: "收藏",
                         fun: "乐园",
-                        community: "留言",
+                        community: "一封信的岛",
                       }[id],
                     )}
                     {state.sections.includes(id) ? " ✓" : ""}

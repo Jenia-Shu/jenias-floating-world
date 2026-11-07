@@ -31,8 +31,8 @@ const MAIN: IslandShape = { radius: 5, height: 0.75, depth: 4.4, seed: 1.3, bump
 const ISLES: { p: [number, number, number]; r: number }[] = [
   { p: [-11, -1.0, -5], r: 2.6 },
   { p: [8.5, 1.1, -10], r: 2.2 },
+  { p: [12.5, -1.5, 3], r: 2.2 },
   { p: [-6.5, -1.8, 8.5], r: 2.0 },
-  { p: [12.5, -1.5, 3], r: 1.7 },
 ];
 
 type Seg = { a: THREE.Vector3; b: THREE.Vector3; air: boolean; dwell: number; len: number };

@@ -103,59 +103,12 @@ function PlinthHalo({ y }: { y: number }) {
   );
 }
 
-/** Round reading tower plus a listening booth. */
+/** Round reading tower plus a listening booth. Collections stays pure: the
+ *  drifting bottle and its tide pool live on the Message Island now. */
 function Collections({ shape, reducedMotion, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
-  const water = pondWaterLevel(shape);
   return (
     <group>
-      {/* The pond is carved into the island's shape; this is only the water. */}
-      <group position={[POND.x, water, POND.z]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.92, 1]} receiveShadow>
-          <circleGeometry args={[POND.r, 40]} />
-          <meshStandardMaterial color="#9fcbe0" roughness={0.12} metalness={0.15} transparent opacity={0.9} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.15, 0.008, -0.13]}>
-          <circleGeometry args={[0.075, 16]} />
-          <meshStandardMaterial color="#7f9a6a" roughness={0.8} side={THREE.DoubleSide} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-0.22, 0.008, 0.15]} scale={0.78}>
-          <circleGeometry args={[0.075, 16]} />
-          <meshStandardMaterial color="#8aa574" roughness={0.8} side={THREE.DoubleSide} />
-        </mesh>
-        {/* reeds at the water's edge */}
-        {[2.35, 3.35, 4.55].map((a, i) => {
-          const x = Math.cos(a) * (POND.r + 0.04);
-          const z = Math.sin(a) * (POND.r + 0.04);
-          return (
-            <group key={i} position={[x, 0, z]} rotation={[0, -a, 0]}>
-              <mesh position={[0, 0.12, 0]} rotation={[0.08, 0, 0.12]} castShadow>
-                <cylinderGeometry args={[0.006, 0.009, 0.26, 5]} />
-                <meshStandardMaterial color="#8a9f78" roughness={0.9} />
-              </mesh>
-              <mesh position={[0.03, 0.21, 0.01]} rotation={[0.08, 0, 0.18]} castShadow>
-                <cylinderGeometry args={[0.004, 0.007, 0.2, 5]} />
-                <meshStandardMaterial color="#93a882" roughness={0.9} />
-              </mesh>
-            </group>
-          );
-        })}
-      </group>
-      {/* rim stones, like the main island's pond */}
-      {Array.from({ length: 9 }, (_, i) => {
-        const a = (i / 9) * Math.PI * 2 + 0.3;
-        const x = POND.x + Math.cos(a) * (POND.r + 0.12);
-        const z = POND.z + Math.sin(a) * (POND.r + 0.12);
-        return (
-          <Rock
-            key={i}
-            position={[x, surfaceHeight(x, z, shape), z]}
-            scale={0.085 + ((i * 3) % 4) * 0.012}
-            rot={i * 1.3}
-          />
-        );
-      })}
-
       <group position={[0, g(0, 0), 0]}>
         <mesh geometry={G.cyl} material={M.stone} position={[0, 0.72, 0]} scale={[0.52, 1.45, 0.52]} castShadow receiveShadow />
         <mesh geometry={G.cyl} material={M.darkWood} position={[0, 1.44, 0]} scale={[0.56, 0.06, 0.56]} />
@@ -228,9 +181,8 @@ function FerrisWheel({ position, reducedMotion }: { position: P3; reducedMotion:
       <mesh geometry={G.cyl} material={M.metal} position={[0.26, 0.29, 0]} rotation={[0, 0, -0.52]} scale={[0.017, 0.68, 0.017]} castShadow />
       <group ref={wheel} position={[0, 0.58, 0]}>
         {[-0.085, 0.085].map((z, i) => (
-          <mesh key={i} position={[0, 0, z]}>
+          <mesh key={i} position={[0, 0, z]} material={M.metal}>
             <torusGeometry args={[R, 0.011, 5, 36]} />
-            <primitive object={M.metal} attach="material" />
           </mesh>
         ))}
         {spokes.map((a, i) => (
@@ -325,29 +277,12 @@ function CoasterCar({ curve, reducedMotion }: { curve: THREE.CatmullRomCurve3; r
   );
 }
 
-/** Lighthouse, swing and a little tent. */
+/** Ferris wheel, coaster and a little tent — the Fun Zone proper. The
+ *  lighthouse and the seaside swing belong to the Message Island now. */
 function Fun({ shape, reducedMotion, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
   return (
     <group>
-      <group position={[0, g(0, 0), 0]}>
-        <mesh geometry={G.cyl} material={M.white} position={[0, 1.05, 0]} scale={[0.2, 2.1, 0.2]} castShadow receiveShadow />
-        <mesh geometry={G.cyl} material={M.clay} position={[0, 1.35, 0]} scale={[0.208, 0.22, 0.208]} />
-        <mesh geometry={G.cyl} material={M.white} position={[0, 1.72, 0]} scale={[0.206, 0.2, 0.206]} />
-        <mesh geometry={G.cyl} material={M.darkWood} position={[0, 2.12, 0]} scale={[0.24, 0.05, 0.24]} />
-        <mesh geometry={G.cyl} material={M.glow} position={[0, 2.24, 0]} scale={[0.15, 0.2, 0.15]} />
-        <mesh geometry={G.cone} material={M.clay} position={[0, 2.44, 0]} scale={[0.2, 0.2, 0.2]} castShadow />
-        <mesh geometry={G.box} material={M.darkWood} position={[0, 0.18, 0.2]} scale={[0.16, 0.36, 0.04]} />
-        {!reducedMotion && <Beam y={2.24} />}
-      </group>
-
-      <group position={[1.05, g(1.05, -0.9), -0.9]} rotation={[0, 0.5, 0]}>
-        <mesh geometry={G.cyl} material={M.darkWood} position={[-0.4, 0.46, 0]} scale={[0.03, 0.92, 0.03]} castShadow />
-        <mesh geometry={G.cyl} material={M.darkWood} position={[0.4, 0.46, 0]} scale={[0.03, 0.92, 0.03]} castShadow />
-        <mesh geometry={G.cyl} material={M.wood} position={[0, 0.92, 0]} rotation={[0, 0, Math.PI / 2]} scale={[0.024, 0.86, 0.024]} castShadow />
-        {!reducedMotion ? <SwingSeat /> : <mesh geometry={G.box} material={M.wood} position={[0, 0.62, 0]} scale={[0.18, 0.03, 0.09]} />}
-      </group>
-
       <mesh geometry={G.cone} material={M.teal} position={[-0.95, g(-0.95, -0.85) + 0.42, -0.85]} scale={[0.34, 0.82, 0.34]} castShadow />
       <mesh geometry={G.cone} material={M.white} position={[-0.95, g(-0.95, -0.85) + 0.63, -0.85]} scale={[0.16, 0.4, 0.16]} />
       <group
@@ -391,9 +326,12 @@ function SwingSeat() {
   );
 }
 
-/** A small jetty reaching out over the void, with a rowing boat and a mailbox. */
-function Community({ shape, reducedMotion, outward, onEgg }: ThemeProps) {
+/** A Little Message · 一封信的岛 — a small seaside chapter: the tide pool where
+ *  the collie leaves the bottle, a lighthouse, a post office, a swing facing
+ *  the sea, and a wooden bridge out into the mist. */
+function MessageIsland({ shape, reducedMotion, outward, onEgg }: ThemeProps) {
   const g = (x: number, z: number) => surfaceHeight(x, z, shape);
+  const water = pondWaterLevel(shape);
   const [ox, oz] = outward;
   const rim = shape.radius * 0.92;
   const start = { x: ox * (rim - 0.5), z: oz * (rim - 0.5) };
@@ -407,7 +345,69 @@ function Community({ shape, reducedMotion, outward, onEgg }: ThemeProps) {
 
   return (
     <group>
-      {/* deck + posts */}
+      {/* ---- 漂流瓶海湾 · the basin the bottle lands in ---- */}
+      <group position={[POND.x, water, POND.z]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.92, 1]} receiveShadow>
+          <circleGeometry args={[POND.r, 40]} />
+          <meshStandardMaterial color="#9fcbe0" roughness={0.12} metalness={0.15} transparent opacity={0.9} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
+          <ringGeometry args={[POND.r * 0.68, POND.r * 0.73, 40]} />
+          <meshBasicMaterial color="#eaf7fb" transparent opacity={0.5} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.007, 0]}>
+          <ringGeometry args={[POND.r * 0.36, POND.r * 0.39, 40]} />
+          <meshBasicMaterial color="#eaf7fb" transparent opacity={0.35} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      {/* shells, pebbles and a piece of driftwood on the sand */}
+      <Rock position={[0.1, g(0.1, 1.55), 1.55]} scale={0.1} rot={0.4} />
+      <Rock position={[1.75, g(1.75, 1.3), 1.3]} scale={0.075} rot={2.1} />
+      <Rock position={[-0.2, g(-0.2, 1.15), 1.15]} scale={0.065} rot={1.2} />
+      <mesh
+        geometry={G.cyl}
+        material={M.darkWood}
+        position={[0.35, g(0.35, 1.7) + 0.02, 1.7]}
+        rotation={[0, 0.7, Math.PI / 2]}
+        scale={[0.025, 0.42, 0.025]}
+        castShadow
+      />
+
+      {/* ---- 云海灯塔 · white lighthouse, beam turning over the clouds ---- */}
+      <group position={[-0.95, g(-0.95, -0.8), -0.8]}>
+        <mesh geometry={G.cyl} material={M.white} position={[0, 0.9, 0]} scale={[0.2, 1.8, 0.2]} castShadow receiveShadow />
+        <mesh geometry={G.cyl} material={M.clay} position={[0, 1.2, 0]} scale={[0.208, 0.2, 0.208]} />
+        <mesh geometry={G.cyl} material={M.darkWood} position={[0, 1.75, 0]} scale={[0.24, 0.05, 0.24]} />
+        <mesh geometry={G.cyl} material={M.glow} position={[0, 1.88, 0]} scale={[0.15, 0.2, 0.15]} />
+        <mesh geometry={G.cone} material={M.clay} position={[0, 2.08, 0]} scale={[0.2, 0.2, 0.2]} castShadow />
+        <mesh geometry={G.box} material={M.darkWood} position={[0, 0.18, 0.2]} scale={[0.16, 0.36, 0.04]} />
+        {!reducedMotion && <Beam y={1.88} />}
+      </group>
+
+      {/* ---- 海边小邮局 · Message Post ---- */}
+      <group position={[-0.9, g(-0.9, 0.9), 0.9]} rotation={[0, -0.3, 0]}>
+        <mesh geometry={G.box} material={M.wood} position={[0, 0.3, 0]} scale={[0.6, 0.6, 0.5]} castShadow receiveShadow />
+        <mesh geometry={G.cone} material={M.clay} position={[0, 0.78, 0]} rotation={[0, Math.PI / 4, 0]} scale={[0.52, 0.36, 0.52]} castShadow />
+        <mesh geometry={G.box} material={M.darkWood} position={[-0.14, 0.25, 0.26]} scale={[0.18, 0.42, 0.03]} />
+        <mesh geometry={G.box} material={M.glow} position={[0.16, 0.38, 0.26]} scale={[0.12, 0.13, 0.03]} />
+        {/* the Message Post sign */}
+        <mesh geometry={G.cyl} material={M.darkWood} position={[0.5, 0.32, 0.28]} scale={[0.022, 0.64, 0.022]} />
+        <mesh geometry={G.box} material={M.canvas} position={[0.5, 0.62, 0.28]} scale={[0.32, 0.15, 0.02]} />
+      </group>
+
+      {/* ---- 海风秋千 · a swing facing the sea ---- */}
+      <group position={[0.35, g(0.35, -1.4), -1.4]} rotation={[0, 0.2, 0]}>
+        <mesh geometry={G.cyl} material={M.darkWood} position={[-0.4, 0.46, 0]} scale={[0.03, 0.92, 0.03]} castShadow />
+        <mesh geometry={G.cyl} material={M.darkWood} position={[0.4, 0.46, 0]} scale={[0.03, 0.92, 0.03]} castShadow />
+        <mesh geometry={G.cyl} material={M.wood} position={[0, 0.92, 0]} rotation={[0, 0, Math.PI / 2]} scale={[0.024, 0.86, 0.024]} castShadow />
+        {!reducedMotion ? (
+          <SwingSeat />
+        ) : (
+          <mesh geometry={G.box} material={M.wood} position={[0, 0.62, 0]} scale={[0.18, 0.03, 0.09]} />
+        )}
+      </group>
+
+      {/* ---- 远方木桥 · deck + posts ---- */}
       <group position={[mx, baseY, mz]} rotation={[0, yaw, 0]}>
         <mesh geometry={G.box} material={M.wood} position={[0, 0.06, 0]} scale={[len, 0.07, 0.44]} castShadow receiveShadow />
         {postY.map((p, i) => (
@@ -481,7 +481,7 @@ export function IslandTheme(props: ThemeProps & { id: string }) {
     case "fun":
       return <Fun {...props} />;
     case "community":
-      return <Community {...props} />;
+      return <MessageIsland {...props} />;
     default:
       return null;
   }

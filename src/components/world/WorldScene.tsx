@@ -195,8 +195,8 @@ function CameraRig({
 
 type LabelTarget = { el: HTMLElement | null; world: THREE.Vector3; bob: number };
 
-/** Framing for the bottle delivery: close enough to see the collie and the pond. */
-const DELIVERY_CAMERA: CameraCue = { pos: [10.2, 2.85, -5.95], target: [9.2, 1.55, -8.85], dur: 1.5 };
+/** Framing for the bottle delivery on the Message Island: the collie and the tide pool. */
+const DELIVERY_CAMERA: CameraCue = { pos: [14.2, 0.25, 7.05], target: [13.2, -1.05, 4.15], dur: 1.5 };
 
 /** Projects world points to screen each frame and positions plain DOM labels. */
 function LabelProjector({
@@ -278,11 +278,20 @@ const REGIONS_3D: Region3D[] = [
     nameZh: "收藏",
     pos: [8.5, 1.1, -10],
     phase: 2.6,
-    shape: { radius: 2.2, height: 0.4, depth: 2.3, seed: 7.7, bump: 0.08, dips: [POND_DIP] },
+    shape: { radius: 2.2, height: 0.4, depth: 2.3, seed: 7.7, bump: 0.08 },
     trees: [
       [-0.5, -0.4, 0.8],
       [1.55, -0.55, 0.6],
     ],
+  },
+  {
+    id: "community",
+    name: "A Little Message",
+    nameZh: "一封信的岛",
+    pos: [12.5, -1.5, 3],
+    phase: 5.1,
+    shape: { radius: 2.2, height: 0.4, depth: 2.3, seed: 9.4, bump: 0.06, dips: [POND_DIP] },
+    trees: [[-0.3, 0.4, 0.6]],
   },
   {
     id: "fun",
@@ -293,19 +302,10 @@ const REGIONS_3D: Region3D[] = [
     shape: { radius: 2.0, height: 0.4, depth: 2.1, seed: 2.9, bump: 0.07 },
     trees: [[0.6, -0.3, 0.7]],
   },
-  {
-    id: "community",
-    name: "Community",
-    nameZh: "留言",
-    pos: [12.5, -1.5, 3],
-    phase: 5.1,
-    shape: { radius: 1.7, height: 0.35, depth: 1.9, seed: 9.4, bump: 0.06 },
-    trees: [[-0.3, 0.4, 0.6]],
-  },
 ];
 
-/** The island the bottle delivery plays on. */
-const COLLECTIONS_3D = REGIONS_3D.find((r) => r.id === "collections")!;
+/** The island the bottle delivery plays on — the Message Island. */
+const MESSAGE_3D = REGIONS_3D.find((r) => r.id === "community")!;
 
 /**
  * A treeline and a few blooms around the edge of a satellite island. Without
@@ -319,7 +319,7 @@ function IslandGreen({
 }: {
   shape: IslandShape;
   seed: number;
-  /** Ring spots to leave empty (the third island's pond sits in one of them). */
+  /** Ring spots to leave empty (the Message Island's tide pool sits in one of them). */
   skip?: ((x: number, z: number) => boolean) | undefined;
 }) {
   const spots = useMemo(() => {
@@ -364,7 +364,7 @@ function IslandGreen({
   );
 }
 
-/** Keep trees and mushrooms out of the pond on the third island. */
+/** Keep trees and mushrooms out of the tide pool on the Message Island. */
 const NEAR_POND = (x: number, z: number) => Math.hypot(x - POND.x, z - POND.z) < POND.r + 0.3;
 
 function RegionIsland({
@@ -401,7 +401,7 @@ function RegionIsland({
       {unlocked && (
         <>
           <IslandTheme id={data.id} shape={data.shape} reducedMotion={reducedMotion} outward={outward} onEgg={onEgg} />
-          <IslandGreen shape={data.shape} seed={data.phase} skip={data.id === "collections" ? NEAR_POND : undefined} />
+          <IslandGreen shape={data.shape} seed={data.phase} skip={data.id === "community" ? NEAR_POND : undefined} />
           {data.trees.map(([x, z, s], i) => (
             <Grow key={i} position={[x, h(x, z) - 0.02, z]}>
               <Tree position={[0, 0, 0]} scale={s} variant={i + 2} />
@@ -518,7 +518,7 @@ type Props = {
   paused?: boolean;
   /** The browser dropped the WebGL context (tab switch, driver reset, GPU eviction). */
   onContextLost?: (() => void) | undefined;
-  /** The third island owes the visitor a bottle delivery (first time only). */
+  /** The Message Island owes the visitor a bottle delivery (first time only). */
   bottleDue?: boolean;
   /** The bottle is in the water, or on its way there. */
   bottleFloating?: boolean;
@@ -602,8 +602,8 @@ export default function WorldScene({
     return () => window.removeEventListener("keydown", onKey);
   }, [focus, peek]);
 
-  // Once the first two islands are done, the third one delivers a bottle: the
-  // camera turns to its pond and the collie does the rest.
+  // Once the first three islands are done, the Message Island delivers a bottle:
+  // the camera turns to its tide pool and the collie does the rest.
   useEffect(() => {
     if (!bottleDue || !introReady || deliveryStarted.current) return;
     const id = window.setTimeout(() => {
@@ -836,9 +836,11 @@ export default function WorldScene({
               onEgg={onEgg}
             />
           ))}
-          {isUnlocked("collections", visited) && (
+          {isUnlocked("community", visited) && (
             <CollieDelivery
-              shape={COLLECTIONS_3D.shape}
+              shape={MESSAGE_3D.shape}
+              position={MESSAGE_3D.pos}
+              bobPhase={MESSAGE_3D.phase}
               play={cine}
               delivered={bottleFloating}
               exit={bottleRead}
@@ -1012,7 +1014,7 @@ export default function WorldScene({
         <div className="absolute inset-x-0 bottom-16 z-20 flex justify-center px-4">
           {cue ? (
             <p className="pointer-events-none rounded-full border border-white/70 bg-white/80 px-4 py-2 text-[0.7rem] tracking-[0.06em] text-[#2f4156] shadow-[0_18px_40px_-30px_rgba(20,40,60,0.6)] backdrop-blur-md">
-              {pick(lang, "A bottle is drifting in the pond — tap it.", "水面上漂着一只瓶子，点它看看。")}
+              {pick(lang, "A bottle has washed up in the tide pool — tap it.", "海湾里漂来一只瓶子，点它看看。")}
             </p>
           ) : (
             <button
@@ -1024,7 +1026,7 @@ export default function WorldScene({
               className="pointer-events-auto rounded-full border border-white/70 bg-white/85 px-4 py-2 text-[0.7rem] text-[#2f4156] shadow-[0_18px_40px_-30px_rgba(20,40,60,0.6)] backdrop-blur-md transition hover:bg-white"
               style={{ animation: "rise 620ms cubic-bezier(.22,.68,.24,1) both" }}
             >
-              {pick(lang, "Something is drifting in the third island's pond", "第三座岛的水池里，好像有东西")}{" "}
+              {pick(lang, "Something washed up on the Message Island", "一封信的岛上，好像有东西")}{" "}
               <span aria-hidden>→</span>
             </button>
           )}

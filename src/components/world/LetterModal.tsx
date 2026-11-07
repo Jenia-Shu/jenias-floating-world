@@ -55,10 +55,10 @@ export function LetterModal({ onClose }: { onClose: () => void }) {
                 onClick={onClose}
                 className="rounded-full bg-[#33404f] px-5 py-2 text-[0.72rem] tracking-[0.08em] text-[#f7f2e6] transition hover:bg-[#26303c]"
               >
-                {pick(lang, "Fold the letter", "合上信")}
+                {pick(lang, "Keep this letter, keep exploring", "收好这封信，继续探索")}
               </button>
               <span className="text-[0.6rem] tracking-[0.18em] uppercase text-[#8a7a60]">
-                {pick(lang, "The bottle stays in the water", "瓶子留在水里")}
+                {pick(lang, "It stays in the little wooden box", "它会一直留在小木箱里")}
               </span>
             </div>
           </div>
