@@ -10,10 +10,11 @@ import { Cloud, Flowers, LockMarker, Mushroom, Rock, Tree } from "./details";
 import { Grow } from "./Grow";
 import { ShadowTicker } from "./ShadowTicker";
 import { Collie } from "./collie";
+import { FrameCap } from "@/components/FrameCap";
 import { IslandTheme } from "./islands";
 import { CollieDelivery } from "./CollieDelivery";
 import { POND, POND_DIP } from "@/lib/world/bottle";
-import { sceneSettings } from "@/lib/world/quality";
+import { sceneSettings, frameCap } from "@/lib/world/quality";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
 import { isUnlocked } from "@/lib/world/regions";
 import { pick, useLang } from "@/lib/i18n";
@@ -372,13 +373,17 @@ const NEAR_POND = (x: number, z: number) => Math.hypot(x - POND.x, z - POND.z) <
 function RegionIsland({
   data,
   unlocked,
+  built,
   reducedMotion,
   onSelect,
   onHover,
   onEgg,
 }: {
   data: Region3D;
+  /** The island can be entered (its predecessor has been browsed). */
   unlocked: boolean;
+  /** This island's own content has been browsed — its buildings appear then. */
+  built: boolean;
   reducedMotion: boolean;
   onSelect: () => void;
   onHover: (h: boolean) => void;
@@ -400,8 +405,10 @@ function RegionIsland({
       onSelect={unlocked ? onSelect : undefined}
       onHover={unlocked ? onHover : undefined}
     >
-      {unlocked && (
-        <>
+      {/* A freshly unlocked island stays bare — only grass and rocks — until the
+          visitor has actually browsed its content, then the buildings grow in. */}
+      {built && (
+        <Grow reducedMotion={reducedMotion}>
           <IslandTheme id={data.id} shape={data.shape} reducedMotion={reducedMotion} outward={outward} onEgg={onEgg} />
           <IslandGreen shape={data.shape} seed={data.phase} skip={data.id === "community" ? NEAR_POND : undefined} />
           {data.trees.map(([x, z, s], i) => (
@@ -409,7 +416,7 @@ function RegionIsland({
               <Tree position={[0, 0, 0]} scale={s} variant={i + 2} />
             </Grow>
           ))}
-        </>
+        </Grow>
       )}
       <Rock position={[-0.4, h(-0.4, -0.9), -0.9]} scale={0.18} rot={1} />
       <Rock position={[0.9, h(0.9, 0.8), 0.8]} scale={0.12} rot={2} />
@@ -758,7 +765,7 @@ export default function WorldScene({
       <Canvas
         shadows
         dpr={quality.dpr}
-        frameloop={paused ? "never" : "always"}
+        frameloop={paused ? "never" : "demand"}
         onPointerMissed={(e) => {
           const p = press.current;
           if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) {
@@ -808,6 +815,7 @@ export default function WorldScene({
       >
         <fog attach="fog" args={["#dfe8ec", 32, 80]} />
         <ShadowTicker every={quality.shadowEvery} />
+        {!paused && <FrameCap fps={frameCap()} />}
         <hemisphereLight args={["#f1f6f8", "#c7d2bf", 0.75]} />
         <ambientLight intensity={0.18} />
         <directionalLight
@@ -845,6 +853,7 @@ export default function WorldScene({
               key={r.id}
               data={r}
               unlocked={isUnlocked(r.id, visited)}
+              built={visited.includes(r.id)}
               reducedMotion={reducedMotion}
               onSelect={() => focusIsland(r.id)}
               onHover={setHovered}

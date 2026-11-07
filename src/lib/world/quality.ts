@@ -14,6 +14,7 @@
  *  - "high"     `?quality=high`: the original, untouched visual settings
  *
  * `?quality=low|balanced|high` forces a tier, which makes A/B checking easy.
+ * `?fps=30|40|...` forces a frame cap (see FrameCap); 0 or `max` = uncapped.
  * The probe context is released immediately: every live WebGL context counts
  * against the browser's context budget (see WorldMap.hasWebGL).
  */
@@ -25,20 +26,22 @@ export type SceneSettings = {
   antialias: boolean;
   shadowSize: number;
   shadowEvery: number;
+  /** Target frames per second for the rAF throttle. 0 means uncapped. */
+  fpsCap: number;
 };
 
 const TIERS: Record<Quality, { world: SceneSettings; fun: SceneSettings }> = {
   low: {
-    world: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4 },
-    fun: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4 },
+    world: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4, fpsCap: 30 },
+    fun: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4, fpsCap: 30 },
   },
   balanced: {
-    world: { dpr: 1, antialias: true, shadowSize: 1024, shadowEvery: 2 },
-    fun: { dpr: 1.25, antialias: true, shadowSize: 512, shadowEvery: 2 },
+    world: { dpr: 1, antialias: true, shadowSize: 1024, shadowEvery: 3, fpsCap: 40 },
+    fun: { dpr: 1.25, antialias: true, shadowSize: 512, shadowEvery: 3, fpsCap: 40 },
   },
   high: {
-    world: { dpr: [1, 1.25], antialias: true, shadowSize: 2048, shadowEvery: 1 },
-    fun: { dpr: [1, 1.5], antialias: true, shadowSize: 1024, shadowEvery: 1 },
+    world: { dpr: [1, 1.25], antialias: true, shadowSize: 2048, shadowEvery: 1, fpsCap: 60 },
+    fun: { dpr: [1, 1.5], antialias: true, shadowSize: 1024, shadowEvery: 1, fpsCap: 60 },
   },
 };
 
@@ -75,4 +78,21 @@ export function renderQuality(): Quality {
 
 export function sceneSettings(): { world: SceneSettings; fun: SceneSettings } {
   return TIERS[renderQuality()];
+}
+
+/**
+ * The target frame rate for the rAF throttle (see FrameCap). The scene's slow
+ * ambient motion looks identical at ~40fps, so cap below the display rate to
+ * keep the GPU from being asked for frames it cannot deliver (which is what
+ * reads as "stutter" / "lag" on integrated graphics). `?fps=` overrides it.
+ */
+export function frameCap(): number {
+  if (typeof window === "undefined") return 60;
+  const raw = new URLSearchParams(window.location.search).get("fps");
+  if (raw) {
+    if (raw === "max" || raw === "0") return 0;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 1 && n <= 120) return n;
+  }
+  return TIERS[renderQuality()].world.fpsCap;
 }

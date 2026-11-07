@@ -172,13 +172,16 @@ export function CollieBody({ body, head, tail, legs, mouth }: BodyProps) {
         </group>
       ))}
 
-      <group ref={tail} position={[0, 0.26, -0.15]}>
-        <mesh castShadow position={[0, 0.02, -0.055]} rotation={[0.85, 0, 0]} scale={[0.72, 1, 0.72]}>
-          <capsuleGeometry args={[0.028, 0.12, 4, 8]} />
+      {/* tail: a black plume rising out of the rump, leaning back with the
+          wag; the white tip sits at the capsule's actual end, not a ball
+          floating in the air behind the dog */}
+      <group ref={tail} position={[0, 0.25, -0.155]}>
+        <mesh castShadow position={[0, 0.085, -0.005]} scale={[0.8, 1, 0.8]}>
+          <capsuleGeometry args={[0.027, 0.13, 4, 8]} />
           <meshStandardMaterial color={BLACK} roughness={0.9} />
         </mesh>
-        <mesh position={[0, 0.075, -0.118]}>
-          <sphereGeometry args={[0.026, 10, 8]} />
+        <mesh position={[0, 0.16, -0.02]}>
+          <sphereGeometry args={[0.024, 10, 8]} />
           <meshStandardMaterial color={WHITE} roughness={0.9} />
         </mesh>
       </group>

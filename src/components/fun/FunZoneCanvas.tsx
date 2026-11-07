@@ -13,7 +13,8 @@ import { ParkScene } from "./scene/ParkScene";
 import { ExplorerScene, type ExplorerStage } from "./scene/ExplorerScene";
 import { MazeScene, type MazeSceneProps } from "./games/tiny-maze/MazeScene";
 import { ShadowTicker } from "@/components/world/ShadowTicker";
-import { sceneSettings } from "@/lib/world/quality";
+import { sceneSettings, frameCap } from "@/lib/world/quality";
+import { FrameCap } from "@/components/FrameCap";
 
 /** `maze` owns the camera while it is mounted, so CameraRig stands down. */
 export type FunZoneMode = "park" | "game" | "maze";
@@ -96,7 +97,7 @@ export function FunZoneCanvas({
     <Canvas
       shadows
       dpr={quality.dpr}
-      frameloop={active ? "always" : "demand"}
+      frameloop="demand"
       camera={{ position: PARK.pos, fov: 40, near: 0.1, far: 100 }}
       gl={{ antialias: quality.antialias, alpha: false, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
@@ -111,6 +112,7 @@ export function FunZoneCanvas({
       <color attach="background" args={["#e4eff4"]} />
       <fog attach="fog" args={["#e4eff4", 17, 40]} />
       <ShadowTicker every={quality.shadowEvery} />
+      {active && <FrameCap fps={frameCap()} />}
       <ambientLight intensity={0.62} />
       <hemisphereLight args={["#eaf5fb", "#90a982", 0.7]} />
       <directionalLight
