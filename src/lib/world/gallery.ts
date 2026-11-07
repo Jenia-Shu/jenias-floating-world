@@ -47,7 +47,7 @@ export const PLATES: Plate[] = [
     /** Two or three characters for the wall label. */
     tag: { en: "Essays", zh: "随笔" },
     date: "2025.09.29",
-    title: { en: "Two essays from the first weeks", zh: "《宇宙大戏》《初到枫叶的日子》" },
+    title: { en: "Two essays", zh: "两篇随笔" },
     role: { en: "Essays", zh: "随笔" },
     quote: { en: "I just like writing essays…", zh: "喜欢写随笔……" },
   },

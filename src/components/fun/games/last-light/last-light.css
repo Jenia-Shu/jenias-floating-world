@@ -1,0 +1,384 @@
+/* The Last Light — Game 03.
+ *
+ * A quiet closing ceremony drawn entirely in DOM + CSS over the shared 3D
+ * canvas. No second WebGL context, no images, no new dependency. The 3D park
+ * stays mounted underneath and is softened into a sea of clouds by the veil.
+ * The final crossfade into the cover page lives in LastLightHome.tsx.
+ */
+
+.ll-root {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 76px 20px 28px;
+  /* Cloud banks use negative offsets for their drift; keep the ceremony
+     scrollable on short screens without showing browser scrollbars. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: #40504e;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse 62% 46% at 50% 34%, rgba(255, 252, 240, 0.9), transparent 72%),
+    linear-gradient(180deg, rgba(233, 244, 248, 0.9), rgba(250, 247, 235, 0.88) 58%, rgba(225, 239, 243, 0.92));
+  backdrop-filter: blur(7px);
+  animation: ll-in 0.9s ease-out both;
+}
+
+@keyframes ll-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ll-root::-webkit-scrollbar {
+  display: none;
+}
+
+/* A soft gate of light behind the words. It brightens on the last act. */
+.ll-gate {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: min(300px, 62vw);
+  height: min(390px, 52vh);
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(230, 200, 140, 0.55);
+  border-bottom-color: transparent;
+  border-radius: 50% 50% 12px 12px / 42% 42% 12px 12px;
+  background: radial-gradient(ellipse at 50% 62%, rgba(255, 246, 216, 0.82), rgba(255, 250, 235, 0.32) 58%, transparent 78%);
+  box-shadow: 0 0 70px 26px rgba(255, 239, 200, 0.5), inset 0 0 60px rgba(255, 248, 222, 0.7);
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 1.2s ease, box-shadow 1.2s ease;
+}
+
+.ll-root[data-act="card"] .ll-gate,
+.ll-root[data-act="ending"] .ll-gate {
+  opacity: 1;
+  box-shadow: 0 0 120px 54px rgba(255, 242, 206, 0.72), inset 0 0 90px rgba(255, 250, 230, 0.86);
+}
+
+/* Drifting cloud banks so the softened park reads as an island in mist. */
+.ll-cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  filter: blur(30px);
+  pointer-events: none;
+}
+.ll-cloud--a { left: -6%; top: 44%; width: 44vw; height: 26vh; }
+.ll-cloud--b { right: -8%; top: 20%; width: 40vw; height: 24vh; }
+.ll-cloud--c { left: 22%; bottom: -10%; width: 56vw; height: 22vh; }
+
+/* ------------------------------------------------------------- typography */
+
+.ll-stage {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  text-align: center;
+  animation: ll-rise 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes ll-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ll-eyebrow {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #a98a52;
+}
+
+.ll-title {
+  margin: 12px 0 0;
+  font-family: "Great Vibes", cursive;
+  font-weight: 400;
+  font-size: clamp(2.8rem, 8vw, 4.6rem);
+  line-height: 1;
+  color: #3c5658;
+}
+
+.ll-sub {
+  margin: 10px 0 0;
+  font-size: 0.84rem;
+  letter-spacing: 0.16em;
+  color: #6d8684;
+}
+
+.ll-panel {
+  margin: 30px auto 0;
+  width: min(560px, 100%);
+  padding: 30px 30px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(246, 250, 249, 0.8));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(76, 110, 124, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.ll-speaker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #a98a52;
+}
+
+.ll-quote {
+  margin: 16px 0 0;
+  font-size: clamp(1rem, 2.6vw, 1.16rem);
+  line-height: 2;
+  color: #40565a;
+}
+
+.ll-note {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: #7b918f;
+}
+
+/* ---------------------------------------------------------------- acts */
+
+.ll-fragment-no {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  color: #a98a52;
+}
+
+.ll-fragment-title {
+  margin: 12px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #3c5658;
+}
+
+.ll-words {
+  margin: 22px auto 0;
+  max-width: 460px;
+  font-size: clamp(1rem, 2.5vw, 1.16rem);
+  line-height: 2.1;
+  color: #40565a;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.ll-words--lit {
+  color: #8a6d33;
+  text-shadow: 0 0 18px rgba(230, 192, 120, 0.7);
+}
+
+.ll-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 26px;
+}
+.ll-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d8e2df;
+}
+.ll-dot--on {
+  background: #d9b877;
+  box-shadow: 0 0 0 3px rgba(217, 184, 119, 0.22);
+}
+
+.ll-choices {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0 0;
+  text-align: left;
+}
+
+.ll-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 58px;
+  padding: 12px 18px;
+  border: 1px solid rgba(217, 205, 175, 0.6);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #40565a;
+  font-family: inherit;
+  font-size: 0.94rem;
+  line-height: 1.7;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.ll-choice:hover {
+  transform: translateY(-1px);
+  border-color: rgba(217, 184, 119, 0.9);
+  background: rgba(255, 253, 245, 0.92);
+}
+.ll-choice[aria-pressed="true"] {
+  border-color: #d9b877;
+  background: linear-gradient(160deg, #fffaf0, #f7efd9);
+  box-shadow: 0 8px 22px rgba(176, 146, 92, 0.18);
+}
+.ll-choice:focus-visible,
+.ll-btn:focus-visible {
+  outline: 3px solid rgba(126, 175, 206, 0.7);
+  outline-offset: 3px;
+}
+
+.ll-choice-mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #c9b893;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  color: transparent;
+}
+.ll-choice[aria-pressed="true"] .ll-choice-mark {
+  border-color: #c2a262;
+  background: #e6c078;
+  color: #fffdf6;
+}
+
+/* ------------------------------------------------------------ keepsake */
+
+.ll-keepsake {
+  position: relative;
+  margin: 26px auto 0;
+  width: min(470px, 100%);
+  padding: 34px 30px 28px;
+  border: 1px solid #e4d3a8;
+  border-radius: 22px;
+  background: linear-gradient(155deg, #fffdf6, #f7f3e6 48%, #eef5f2);
+  box-shadow: 0 18px 44px rgba(130, 120, 90, 0.2), inset 0 1px 0 #fff;
+  text-align: center;
+  overflow: hidden;
+}
+.ll-keepsake::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 240, 200, 0.5), transparent 70%);
+}
+.ll-keepsake > * { position: relative; z-index: 1; }
+
+.ll-card-lead {
+  margin: 16px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.95;
+  color: #5b6b68;
+}
+.ll-card-before {
+  margin: 22px 0 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  color: #8c9a90;
+}
+.ll-card-line {
+  margin: 12px 0 0;
+  font-size: clamp(1.05rem, 3vw, 1.28rem);
+  line-height: 1.9;
+  color: #7a6231;
+}
+.ll-card-rule {
+  width: 42px;
+  height: 1px;
+  margin: 22px auto 0;
+  background: #d8c9a6;
+}
+.ll-card-sign {
+  margin: 14px 0 0;
+  font-family: "Great Vibes", cursive;
+  font-size: 1.5rem;
+  color: #9c834c;
+}
+.ll-card-date {
+  margin: 12px 0 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  color: #9aa9a2;
+}
+
+/* -------------------------------------------------------------- buttons */
+
+.ll-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.ll-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 11px 26px;
+  border: 1px solid rgba(217, 184, 119, 0.8);
+  border-radius: 999px;
+  background: linear-gradient(160deg, #fffaf0, #f2e5c9);
+  color: #5b4a2e;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(176, 146, 92, 0.2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ll-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(176, 146, 92, 0.28);
+}
+.ll-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+.ll-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+  color: #4a5f60;
+  box-shadow: 0 5px 16px rgba(80, 112, 126, 0.12);
+}
+
+.ll-textbtn {
+  display: block;
+  margin: 16px auto 0;
+  border: 0;
+  background: none;
+  color: #7b918f;
+  font-family: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .ll-root { padding: 68px 14px 20px; }
+  .ll-panel { padding: 24px 20px; }
+  .ll-gate { top: 26%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-root,
+  .ll-stage { animation: none; }
+  .ll-choice,
+  .ll-btn,
+  .ll-gate { transition: none; }
+}

@@ -613,6 +613,40 @@
   text-align: center;
 }
 
+/* Game 03 keepsake: a folded card, not a score. */
+.fz-letter-relic {
+  position: relative;
+  width: 92px;
+  height: 76px;
+  border-radius: 12px;
+  border: 2px solid #e0cda0;
+  background: linear-gradient(155deg, #fffdf6, #f3eee0 55%, #e9f2f1);
+  box-shadow: 0 10px 22px rgba(130, 120, 90, 0.2), inset 0 1px 0 #fff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.fz-letter-relic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 236, 190, 0.85), transparent 65%);
+}
+.fz-letter-relic-line {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 44px;
+  height: 1px;
+  background: #d8c9a6;
+}
+.fz-letter-relic-mark {
+  position: relative;
+  font-size: 1.5rem;
+  color: #c2a262;
+  transform: translateY(-8px);
+}
+
 /* -------------------------------------------------------------- mini map */
 
 .fz-minimap {

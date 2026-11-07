@@ -1,5 +1,5 @@
 /**
- * Tiny Maze — level data (P1: Chapter 01 only).
+ * Tiny Maze — level data (Chapters 01–03).
  *
  * The grid is only a *description* of the world: the player moves in continuous
  * world space and collides with AABBs generated from `#` cells. That keeps the
@@ -50,6 +50,8 @@ export type LevelDef = {
 export const CELL = 1.15;
 export const PLAYER_RADIUS = 0.26;
 export const MOVE_SPEED = 2.45;
+/** Hold Shift to let the princess hurry — a gentle boost, not a sprint. */
+export const SHIFT_BOOST = 1.7;
 /** A cell is 1.15 wide: reach a little past one adjacent cell centre. */
 export const INTERACT_RANGE = 1.55;
 
@@ -132,6 +134,154 @@ export const LEVELS: LevelDef[] = [
       "#...........###",
       "#h.#.#.#.D..###",
       "#C#.......S.###",
+      "###############",
+    ],
+  },
+  {
+    id: 2,
+    num: "02",
+    name: { en: "Lantern Court", zh: "灯笼庭院" },
+    subtitle: { en: "A warm little puzzle as the sun goes down.", zh: "夕阳里一座暖暖的小谜题。" },
+    story: {
+      en: "Lanterns have been lit along the hedge, but the three flower statues have been turned the wrong way. Help Princess set them right before the courtyard goes quiet.",
+      zh: "树篱边上的灯笼已经点亮，可三座花朵雕像却被人转错了方向。趁庭院还亮着，帮公主把它们转回来。",
+    },
+    goal: {
+      en: "Turn the three flower statues to the directions on the lantern sign, then find the exit behind the hidden gate.",
+      zh: "把三座花朵雕像转到灯笼牌上写的方向，再找到隐藏小门后的出口。",
+    },
+    rules: [
+      { en: "Walk freely — no timer, no penalty for a wrong turn.", zh: "自由走动，没有倒计时，走错也不扣分。" },
+      { en: "Read the lantern clue sign in the middle of the court.", zh: "读一读庭院中央的灯笼提示牌。" },
+      { en: "Turn each statue with Space so its flower faces the way the sign says.", zh: "站在雕像旁按空格转动，让花朵朝向牌上写的方向。" },
+      { en: "When all three are right, the hidden gate opens.", zh: "三座都转对后，隐藏小门就会打开。" },
+      { en: "You do not need every star to finish the chapter.", zh: "不收集齐星星也可以通关。" },
+    ],
+    mechanism: {
+      en: "Three statues carry Rose, Daisy and Tulip. Stand beside one and press Space to turn it a quarter-turn. A small golden pointer shows which way it is facing.",
+      zh: "三座雕像分别刻着玫瑰、雏菊和郁金香。站在雕像旁按空格，它会转四分之一圈；底座上的金色小指针指向它当前的方向。",
+    },
+    controls: {
+      en: "WASD / arrow keys to walk · Space to interact · M for the map · Esc to pause. On a phone, use the joystick and the round button.",
+      zh: "WASD／方向键走动 · 空格互动 · M 打开地图 · Esc 暂停。手机上用左下角摇杆和右下角圆按钮。",
+    },
+    collect: {
+      en: "Three stars are tucked into the lantern-lit paths, and one hidden chest waits behind a hedge that is not quite as solid as it looks. Finding them is optional — but lovely.",
+      zh: "三颗星星藏在灯笼照亮的岔路上，一只隐藏宝箱等在某段「看起来是树篱」的地方后面。找不找都可以，但找到会很高兴。",
+    },
+    clue: {
+      en: "Rose → East · Daisy → South · Tulip → West",
+      zh: "玫瑰朝东 · 雏菊朝南 · 郁金香朝西",
+    },
+    hint1: {
+      en: "The lantern sign in the middle of the court tells you which way every flower should face. Look for the gold pointer on each statue's base.",
+      zh: "庭院中央的灯笼牌写着每种花该朝哪个方向。注意每座雕像底座上的金色指针。",
+    },
+    hint2: {
+      en: "Rose faces East, Daisy faces South, Tulip faces West. Press Space beside a statue to turn it — wrong turns are free.",
+      zh: "玫瑰朝东、雏菊朝南、郁金香朝西。站在雕像旁按空格转动它，转错没有任何惩罚。",
+    },
+    flowers: [
+      { en: "Rose", zh: "玫瑰" },
+      { en: "Daisy", zh: "雏菊" },
+      { en: "Tulip", zh: "郁金香" },
+    ],
+    answers: [1, 2, 3],
+    initialDirs: [3, 0, 1],
+    theme: {
+      sky: "#f4ead9",
+      ground: "#efe3c6",
+      hedge: "#8ab182",
+      hedgeTop: "#bcd3a2",
+      accent: "#e0a85a",
+    },
+    grid: [
+      "###############",
+      "#P#....S..#..S#",
+      "#.#.###.###.#.#",
+      "#.#G.E#.....#.#",
+      "#.#####.#####.#",
+      "#.....#h.C#...#",
+      "#####.#####.###",
+      "#D#...#..H#...#",
+      "#.#.###.#.###.#",
+      "#.#.#D..#.#..S#",
+      "#.#.###.#.#.#.#",
+      "#.......#...#D#",
+      "###############",
+    ],
+  },
+  {
+    id: 3,
+    num: "03",
+    name: { en: "Starfall Hollow", zh: "落星幽谷" },
+    subtitle: { en: "One last maze, under a sky full of stars.", zh: "星空下，最后一座迷宫。" },
+    story: {
+      en: "Under the first stars, the court has gone quiet and the statues wait in the dark. Turn the three flowers to the signs written in starlight, and the last gate will open.",
+      zh: "第一颗星星亮起，庭院安静下来，雕像在夜色里等着。把三朵花转到星光写出的方向，最后一道门就会打开。",
+    },
+    goal: {
+      en: "Turn the three flower statues to the directions on the starlight sign, then step through the hidden gate to the exit.",
+      zh: "把三座花朵雕像转到星光牌上写的方向，再穿过隐藏小门走向出口。",
+    },
+    rules: [
+      { en: "Walk freely — no timer, no penalty for a wrong turn.", zh: "自由走动，没有倒计时，走错也不扣分。" },
+      { en: "Read the starlight clue sign in the middle of the hollow.", zh: "读一读幽谷中央的星光提示牌。" },
+      { en: "Turn each statue with Space so its flower faces the way the sign says.", zh: "站在雕像旁按空格转动，让花朵朝向牌上写的方向。" },
+      { en: "When all three are right, the hidden gate opens.", zh: "三座都转对后，隐藏小门就会打开。" },
+      { en: "You do not need every star to finish the chapter.", zh: "不收集齐星星也可以通关。" },
+    ],
+    mechanism: {
+      en: "Three statues carry Rose, Daisy and Tulip. Stand beside one and press Space to turn it a quarter-turn. A small golden pointer shows which way it is facing.",
+      zh: "三座雕像分别刻着玫瑰、雏菊和郁金香。站在雕像旁按空格，它会转四分之一圈；底座上的金色小指针指向它当前的方向。",
+    },
+    controls: {
+      en: "WASD / arrow keys to walk · Space to interact · M for the map · Esc to pause. On a phone, use the joystick and the round button.",
+      zh: "WASD／方向键走动 · 空格互动 · M 打开地图 · Esc 暂停。手机上用左下角摇杆和右下角圆按钮。",
+    },
+    collect: {
+      en: "Three stars are scattered across the moonlit paths, and one hidden chest waits behind a hedge that is not quite as solid as it looks. Finding them is optional — but lovely.",
+      zh: "三颗星星散落在月光照亮的岔路上，一只隐藏宝箱等在某段「看起来是树篱」的地方后面。找不找都可以，但找到会很高兴。",
+    },
+    clue: {
+      en: "Rose → South · Daisy → North · Tulip → East",
+      zh: "玫瑰朝南 · 雏菊朝北 · 郁金香朝东",
+    },
+    hint1: {
+      en: "The starlight sign in the middle of the hollow tells you which way every flower should face. Look for the gold pointer on each statue's base.",
+      zh: "幽谷中央的星光牌写着每种花该朝哪个方向。注意每座雕像底座上的金色指针。",
+    },
+    hint2: {
+      en: "Rose faces South, Daisy faces North, Tulip faces East. Press Space beside a statue to turn it — wrong turns are free.",
+      zh: "玫瑰朝南、雏菊朝北、郁金香朝东。站在雕像旁按空格转动它，转错没有任何惩罚。",
+    },
+    flowers: [
+      { en: "Rose", zh: "玫瑰" },
+      { en: "Daisy", zh: "雏菊" },
+      { en: "Tulip", zh: "郁金香" },
+    ],
+    answers: [2, 0, 1],
+    initialDirs: [0, 3, 2],
+    theme: {
+      sky: "#2c3a57",
+      ground: "#d9e0ea",
+      hedge: "#5f7e8c",
+      hedgeTop: "#90b0ac",
+      accent: "#d9c46a",
+    },
+    grid: [
+      "###############",
+      "#P..#D....#C.h#",
+      "###.###.#.###.#",
+      "#D#..H..#..S..#",
+      "#.###########.#",
+      "#.........#...#",
+      "#.#######.#.###",
+      "#...#E.G..#.#.#",
+      "#.#.#######.#.#",
+      "#.#...#....S#.#",
+      "#.###.#.#####.#",
+      "#..D#....S....#",
       "###############",
     ],
   },

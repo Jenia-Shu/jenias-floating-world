@@ -29,6 +29,8 @@ type Props = {
   onOpenLetter: () => void;
   /** The collie leads the visitor across the bridge into the Fun Zone. */
   onFollow: () => void;
+  /** Game 03 ended: the light opens onto the cover page. */
+  onFinishJourney?: (() => void) | undefined;
 };
 
 /** Full-screen reading surface for one island. The map keeps rendering behind it. */
@@ -43,6 +45,7 @@ export function WorldPage({
   onOpenWall,
   onOpenLetter,
   onFollow,
+  onFinishJourney,
 }: Props) {
   const [lang] = useLang();
   const ui = t(lang);
@@ -101,6 +104,7 @@ export function WorldPage({
           onDone={onDone}
           onClose={onClose}
           onOpenWall={onOpenWall}
+          onFinishJourney={onFinishJourney}
         />
       </Suspense>
     );

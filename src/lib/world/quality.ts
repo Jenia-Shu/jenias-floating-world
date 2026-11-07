@@ -36,8 +36,11 @@ const TIERS: Record<Quality, { world: SceneSettings; fun: SceneSettings }> = {
     fun: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4, fpsCap: 30 },
   },
   balanced: {
-    world: { dpr: 1, antialias: true, shadowSize: 1024, shadowEvery: 3, fpsCap: 40 },
-    fun: { dpr: 1.25, antialias: true, shadowSize: 512, shadowEvery: 3, fpsCap: 40 },
+    // Default for real GPUs. MSAA (antialias) is by far the heaviest cost on
+    // weak integrated graphics, so it is off here; smaller shadows + a touch
+    // lower dpr + a frame cap keep the scene smooth without looking flat.
+    world: { dpr: 0.85, antialias: false, shadowSize: 512, shadowEvery: 4, fpsCap: 36 },
+    fun: { dpr: 0.85, antialias: false, shadowSize: 512, shadowEvery: 4, fpsCap: 36 },
   },
   high: {
     world: { dpr: [1, 1.25], antialias: true, shadowSize: 2048, shadowEvery: 1, fpsCap: 60 },

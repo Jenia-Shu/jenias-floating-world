@@ -413,7 +413,7 @@ export const QUESTIONS: Question[] = [
     options: [bi("1", "1"), bi("2", "2"), bi("4", "4"), bi("3", "3")],
     correct: 3,
     hint: bi("Count the little buildings, not the islands.", "数的是小设施，不是浮岛。"),
-    explain: bi("Three: World Explorer, Tiny Maze and The Choice Adventure.", "三个：知识探索站、迷宫入口、故事剧场。"),
+    explain: bi("Three: World Explorer, Tiny Maze and The Last Light.", "三个：知识探索站、迷宫入口、最后一束光。"),
     source: "fun/funZone.ts · GAMES",
   }),
   q({
@@ -425,7 +425,7 @@ export const QUESTIONS: Question[] = [
     options: [
       bi("TINY MAZE", "迷宫入口"),
       bi("WORLD EXPLORER", "知识探索站"),
-      bi("THE CHOICE ADVENTURE", "故事剧场"),
+      bi("THE LAST LIGHT", "最后一束光"),
       bi("A LITTLE MESSAGE", "一封信的岛"),
     ],
     correct: 1,
@@ -442,7 +442,7 @@ export const QUESTIONS: Question[] = [
     options: [
       bi("TINY MAZE", "迷宫入口"),
       bi("WORLD EXPLORER", "知识探索站"),
-      bi("THE CHOICE ADVENTURE", "故事剧场"),
+      bi("THE LAST LIGHT", "最后一束光"),
       bi("ACHIEVEMENT WALL", "徽章墙"),
     ],
     correct: 0,
@@ -459,12 +459,12 @@ export const QUESTIONS: Question[] = [
     options: [
       bi("WORLD EXPLORER", "知识探索站"),
       bi("TINY MAZE", "迷宫入口"),
-      bi("THE CHOICE ADVENTURE", "故事剧场"),
+      bi("THE LAST LIGHT", "最后一束光"),
       bi("THE COLLECTION ROOM", "收藏的房间"),
     ],
     correct: 2,
     hint: bi("Its name has something to do with picking a path.", "名字里，有一个关于「选」的词。"),
-    explain: bi("World Explorer → Tiny Maze → The Choice Adventure.", "顺序是：知识探索站 → 迷宫入口 → 故事剧场。"),
+    explain: bi("World Explorer → Tiny Maze → The Last Light.", "顺序是：知识探索站 → 迷宫入口 → 最后一束光。"),
     source: "fun/funZone.ts · GAMES[2]",
   }),
   q({

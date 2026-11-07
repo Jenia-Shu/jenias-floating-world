@@ -132,7 +132,7 @@ function ChoiceAdventure() {
       </mesh>
       <WoodSign text="THIS WAY" position={[-0.28, 0.68, -0.2]} rotation={[0, 0.5, 0.08]} width={0.72} post={false} />
       <WoodSign text="OR THAT" position={[0.3, 0.68, -0.2]} rotation={[0, -0.5, -0.08]} width={0.72} post={false} />
-      <WoodSign text="THE CHOICE ADVENTURE" position={[0, 1.35, 0]} width={1.85} post={false} />
+      <WoodSign text="THE LAST LIGHT" position={[0, 1.35, 0]} width={1.85} post={false} />
       <mesh position={[0, 0.92, 0]}>
         <cylinderGeometry args={[0.035, 0.035, 0.85, 8]} />
         <meshStandardMaterial color={PALETTE.woodDark} roughness={0.9} />

@@ -16,8 +16,10 @@ import { ShadowTicker } from "@/components/world/ShadowTicker";
 import { sceneSettings, frameCap } from "@/lib/world/quality";
 import { FrameCap } from "@/components/FrameCap";
 
-/** `maze` owns the camera while it is mounted, so CameraRig stands down. */
-export type FunZoneMode = "park" | "game" | "maze";
+/** `maze` owns the camera while it is mounted, so CameraRig stands down.
+ *  `last-light` is Game 03: a DOM/CSS ceremony over the same park canvas —
+ *  no second WebGL context is created. */
+export type FunZoneMode = "park" | "game" | "maze" | "last-light";
 
 export type ExplorerProps = Omit<ComponentProps<typeof ExplorerScene>, "reducedMotion">;
 
@@ -43,7 +45,7 @@ const CHAPTER: Shot = { pos: [0, 4.45, 8.4], target: [0, 1.0, 0] };
 const RESULT: Shot = { pos: [0, 4.7, 8.8], target: [0, 1.0, 0] };
 
 function shotFor(mode: FunZoneMode, stage: ExplorerStage | null): Shot {
-  if (mode === "park" || mode === "maze") return PARK;
+  if (mode === "park" || mode === "maze" || mode === "last-light") return PARK;
   switch (stage) {
     case "question":
       return CLOSE;
@@ -134,7 +136,9 @@ export function FunZoneCanvas({
       <directionalLight position={[5, 3, 8]} intensity={0.3} color="#f5e6c8" />
       {mode !== "maze" && <CameraRig mode={mode} stage={stage} reducedMotion={reducedMotion} />}
 
-      {mode === "park" ? (
+      {mode === "park" || mode === "last-light" ? (
+        // Game 03 keeps the park underneath its DOM veil: the CSS clouds and
+        // light soften the same 3D island instead of mounting a new context.
         <ParkScene
           unlocked={unlocked}
           justUnlocked={justUnlocked}

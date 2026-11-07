@@ -853,7 +853,7 @@ export default function WorldScene({
               key={r.id}
               data={r}
               unlocked={isUnlocked(r.id, visited)}
-              built={visited.includes(r.id)}
+              built={r.id === "community" || visited.includes(r.id)}
               reducedMotion={reducedMotion}
               onSelect={() => focusIsland(r.id)}
               onHover={setHovered}

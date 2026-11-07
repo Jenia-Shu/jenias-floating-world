@@ -4,6 +4,7 @@ import { SignIn } from "@/components/SignIn";
 import { Diag } from "@/components/Diag";
 import { Welcome } from "@/components/Welcome";
 import { WorldMap } from "@/components/WorldMap";
+import { LastLightHome } from "@/components/LastLightHome";
 import { currentSession, signOut, type Session } from "@/lib/user";
 import { recordVisit } from "@/lib/achievements/store";
 
@@ -39,6 +40,9 @@ function Index() {
       : "welcome",
   );
   const [worldMounted, setWorldMounted] = useState(false);
+  // Game 03's closing curtain. It belongs at the app root so it survives the
+  // swap from the 3D world back to the Welcome cover.
+  const [lastLight, setLastLight] = useState(false);
   const inWorld = stage === "world";
 
   useEffect(() => {
@@ -80,6 +84,7 @@ function Index() {
             onSignOut={leave}
             onNicknameChange={setUser}
             active={inWorld}
+            onFinishJourney={() => setLastLight(true)}
           />
         </div>
       )}
@@ -90,6 +95,21 @@ function Index() {
             setStage("leaving");
             window.setTimeout(() => setStage("world"), 650);
           }}
+        />
+      )}
+      {lastLight && (
+        <LastLightHome
+          onReveal={() => {
+            // Mount the real cover behind the curtain while it is still opaque.
+            setStage("welcome");
+            // The preview shortcut should not linger after the journey ends.
+            if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("lastlight")) {
+              const u = new URL(window.location.href);
+              u.searchParams.delete("lastlight");
+              window.history.replaceState(null, "", u.toString());
+            }
+          }}
+          onDone={() => setLastLight(false)}
         />
       )}
     </>

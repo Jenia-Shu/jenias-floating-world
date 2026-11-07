@@ -266,6 +266,7 @@ export function WorldMap({
   onSignOut,
   onNicknameChange,
   active = true,
+  onFinishJourney,
 }: {
   onHome: () => void;
   user: Session;
@@ -273,6 +274,8 @@ export function WorldMap({
   onNicknameChange: (session: Session) => void;
   /** False while the welcome screen covers the map; the scene then stops drawing. */
   active?: boolean;
+  /** Game 03 ended: raise the cover-page curtain at the app root. */
+  onFinishJourney?: (() => void) | undefined;
 }) {
   const [lang] = useLang();
   const ui = t(lang);
@@ -283,11 +286,14 @@ export function WorldMap({
   const [visited, setVisited] = useState<string[]>([]);
   // ?gallery=1 opens the gallery straight away — the wall is the one page worth
   // linking to directly, and it saves clicking through the map to check it.
-  const [openId, setOpenId] = useState<string | null>(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("gallery")
-      ? "gallery"
-      : null,
-  );
+  const [openId, setOpenId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const q = new URLSearchParams(window.location.search);
+    if (q.has("gallery")) return "gallery";
+    // Debug-only: `?lastlight=1` opens Game 03 straight away for review.
+    if (q.has("lastlight")) return "fun";
+    return null;
+  });
   const [waited, setWaited] = useState(0);
   const [wallOpen, setWallOpen] = useState<boolean>(
     () =>
@@ -457,12 +463,22 @@ export function WorldMap({
     // parts. Mount the park as soon as its chunk is ready; on failure
     // WorldPage's own lazy import will request it again and show its fallback.
     if (!reducedMotion) setFunArrival(true);
-    void import("@/components/fun/FunZonePage")
-      .catch(() => {})
-      .finally(() => setOpenId("fun"));
+    // Land on the Fun Zone immediately and let the lazy park mount behind the
+    // veil — the fog parts onto the park itself, never back onto the map.
+    setOpenId("fun");
+    void import("@/components/fun/FunZonePage").catch(() => {});
   }, [finishRegion, reducedMotion]);
 
   const arrivalDone = useCallback(() => setFunArrival(false), []);
+
+  // Game 03 ends the whole journey. Close the Fun Zone panel in the same beat
+  // the curtain is raised, so re-entering the world lands on a clean map
+  // instead of jumping straight back into the game.
+  const finishJourney = useCallback(() => {
+    setOpenId(null);
+    setLetterOpen(false);
+    onFinishJourney?.();
+  }, [onFinishJourney]);
 
   const closeLetter = useCallback(() => {
     setLetterOpen(false);
@@ -621,6 +637,7 @@ export function WorldMap({
           onOpenWall={() => setWallOpen(true)}
           onOpenLetter={openLetter}
           onFollow={followToFun}
+          onFinishJourney={finishJourney}
         />
       )}
 

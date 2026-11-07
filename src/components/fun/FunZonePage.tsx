@@ -1,10 +1,9 @@
 /**
- * Fun Zone shell: the 3D park, the three-game progression, and the host for
- * Game 01. Game 02 / 03 slots are already registered and visible (locked), so
- * later sessions only add their own game folder — nothing here needs rewriting.
+ * Fun Zone shell: the 3D park and all three games.
  *
- * Only one canvas is ever mounted. The park and the campsite share it, which
- * avoids the WebGL-context leaks this project has been bitten by before.
+ * Only one canvas is ever mounted. Game 03 (The Last Light) is a DOM/CSS
+ * ceremony over that same park canvas — no second WebGL context. Finishing it
+ * raises a curtain at the app root and returns to the cover page.
  */
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -25,6 +24,7 @@ import { playSound, setSoundEnabled, stopAmbience } from "@/lib/fun/sound";
 import { FunZoneCanvas, type FunZoneMode } from "./FunZoneCanvas";
 import { useExplorerGame, WorldExplorerGame } from "./games/world-explorer/WorldExplorerGame";
 import { useTinyMazeGame, TinyMazeGame } from "./games/tiny-maze/TinyMazeGame";
+import { LastLightGame } from "./games/last-light/LastLightGame";
 import type { ExplorerStage } from "./scene/ExplorerScene";
 import "./fun.css";
 
@@ -34,6 +34,8 @@ type Props = {
   onOpenWall?: (() => void) | undefined;
   seen: boolean;
   onDone: () => void;
+  /** Game 03 ended: hand over to the cover-page curtain at the app root. */
+  onFinishJourney?: (() => void) | undefined;
 };
 
 class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
@@ -63,10 +65,14 @@ function hasWebGL() {
   return webglSupport;
 }
 
-export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) {
+/** Debug-only: `?lastlight=1` opens Game 03 directly, skipping the unlock chain. */
+const previewLastLight = () =>
+  typeof window !== "undefined" && new URLSearchParams(window.location.search).has("lastlight");
+
+export function FunZonePage({ user, onClose, onOpenWall, seen, onDone, onFinishJourney }: Props) {
   const [lang] = useLang();
   const [state, setState] = useState<FunState>(() => readFunState(user));
-  const [mode, setMode] = useState<FunZoneMode>("park");
+  const [mode, setMode] = useState<FunZoneMode>(() => (previewLastLight() ? "last-light" : "park"));
   const [lockedHint, setLockedHint] = useState<GameId | null>(null);
   const [justUnlocked, setJustUnlocked] = useState<GameId | null>(null);
   const [pendingUnlock, setPendingUnlock] = useState<GameId | null>(null);
@@ -148,7 +154,7 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
       }
       setLockedHint(null);
       playSound("tap");
-      setMode(id === "tiny-maze" ? "maze" : "game");
+      setMode(id === "tiny-maze" ? "maze" : id === "choice-adventure" ? "last-light" : "game");
     },
     [state],
   );
@@ -313,6 +319,21 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone }: Props) 
 
       {mode === "maze" && (
         <TinyMazeGame view={maze.view} actions={maze.actions} lang={lang} />
+      )}
+
+      {mode === "last-light" && (
+        <LastLightGame
+          lang={lang}
+          state={state}
+          commit={commit}
+          onExit={enterPark}
+          onFinish={() => {
+            // The curtain lives at the app root so it outlives this page when
+            // the router swaps back to the Welcome cover.
+            if (onFinishJourney) onFinishJourney();
+            else onClose();
+          }}
+        />
       )}
 
       {!supported && (

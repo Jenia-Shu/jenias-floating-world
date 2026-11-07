@@ -1,0 +1,138 @@
+/* The Last Light → cover page curtain.
+ *
+ * The last frame is deliberately pixel-identical to `.welcome-backdrop`, so
+ * when the curtain clears, the real Welcome screen is already showing the same
+ * sky underneath — no flash, no fake duplicate of the cover text.
+ */
+
+.llh-root {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.2s ease-in-out;
+}
+.llh-root[data-phase="fade"] { opacity: 0; }
+
+/* Washes over the last card so the cut is not a hard flash. */
+.llh-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 42%, var(--cream) 0%, transparent 70%),
+    linear-gradient(180deg, var(--mist-1) 0%, var(--background) 55%, var(--mist-2) 100%);
+  animation: llh-veil-in 0.85s ease-out both;
+}
+@keyframes llh-veil-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Identical to .welcome-backdrop — this is the sky the light becomes. */
+.llh-sky {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 42%, #fffaf0 0%, rgba(255, 250, 240, 0) 70%),
+    linear-gradient(180deg, #eaf3f7 0%, #fbf7ec 45%, #e8f1f4 100%);
+  transition: opacity 1.4s ease-in-out;
+}
+.llh-root[data-phase="sky"] .llh-sky,
+.llh-root[data-phase="fade"] .llh-sky { opacity: 1; }
+
+/* The door: a tall arch of warm light that opens, then widens into the sky. */
+.llh-door {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(220px, 34vw);
+  height: min(360px, 54vh);
+  transform: translate(-50%, -50%) scale(0.82);
+  border: 2px solid rgba(240, 216, 166, 0.75);
+  border-bottom-color: transparent;
+  border-radius: 50% 50% 8px 8px / 34% 34% 8px 8px;
+  background: radial-gradient(ellipse at 50% 68%, #fffdf4 0%, #fff3d3 42%, rgba(255, 240, 205, 0.35) 78%, rgba(255, 240, 205, 0) 100%);
+  box-shadow: 0 0 90px 30px rgba(255, 236, 186, 0.55), inset 0 0 60px rgba(255, 250, 226, 0.9);
+  opacity: 0;
+  transition: opacity 1s ease, transform 1.8s cubic-bezier(0.25, 0.6, 0.2, 1), filter 1.4s ease;
+}
+.llh-root[data-phase="door"] .llh-door { opacity: 0.9; transform: translate(-50%, -50%) scale(0.92); }
+.llh-root[data-phase="line"] .llh-door { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.llh-root[data-phase="sky"] .llh-door,
+.llh-root[data-phase="fade"] .llh-door {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(3.4);
+  filter: blur(14px);
+}
+
+.llh-door-inner {
+  position: absolute;
+  inset: 6px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 249, 224, 0.7));
+}
+
+/* A soft halo behind the door so the whole frame feels lit from within. */
+.llh-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 70vw;
+  height: 70vh;
+  transform: translate(-50%, -50%) scale(0.6);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 245, 214, 0.9) 0%, rgba(255, 244, 214, 0.35) 45%, rgba(255, 244, 214, 0) 72%);
+  opacity: 0;
+  transition: opacity 1.1s ease, transform 2s ease;
+}
+.llh-root[data-phase="door"] .llh-glow,
+.llh-root[data-phase="line"] .llh-glow { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+.llh-root[data-phase="sky"] .llh-glow,
+.llh-root[data-phase="fade"] .llh-glow { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+
+.llh-clouds { position: absolute; inset: 0; }
+.llh-cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  filter: blur(30px);
+  transition: transform 1.8s cubic-bezier(0.32, 0, 0.2, 1), opacity 1.4s ease;
+}
+.llh-root[data-phase="sky"] .llh-cloud--left,
+.llh-root[data-phase="fade"] .llh-cloud--left { transform: translateX(-90%); opacity: 0; }
+.llh-root[data-phase="sky"] .llh-cloud--right,
+.llh-root[data-phase="fade"] .llh-cloud--right { transform: translateX(90%); opacity: 0; }
+
+/* The one line of the ending. It sits in the light, then gives way to the sky. */
+.llh-finale {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(680px, calc(100vw - 48px));
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  font-size: clamp(0.95rem, 2.4vw, 1.28rem);
+  line-height: 2;
+  letter-spacing: 0.08em;
+  color: #6b6350;
+  text-shadow: 0 1px 20px rgba(255, 253, 240, 0.9);
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.llh-root[data-phase="line"] .llh-finale { opacity: 1; }
+.llh-root[data-phase="sky"] .llh-finale,
+.llh-root[data-phase="fade"] .llh-finale { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .llh-root,
+  .llh-sky,
+  .llh-door,
+  .llh-glow,
+  .llh-cloud,
+  .llh-finale { transition: none; }
+}

@@ -31,6 +31,7 @@ import {
   CELL,
   INTERACT_RANGE,
   MOVE_SPEED,
+  SHIFT_BOOST,
   PLAYER_RADIUS,
   worldToCell,
   yawForDir,
@@ -615,8 +616,10 @@ function Player({
       }
     }
 
-    vel.current.x = THREE.MathUtils.damp(vel.current.x, dx * MOVE_SPEED, 9, step);
-    vel.current.z = THREE.MathUtils.damp(vel.current.z, dz * MOVE_SPEED, 9, step);
+    // Hold Shift to let the princess hurry — a gentle boost, not a sprint.
+    const boost = keys.has("shift") ? SHIFT_BOOST : 1;
+    vel.current.x = THREE.MathUtils.damp(vel.current.x, dx * MOVE_SPEED * boost, 9, step);
+    vel.current.z = THREE.MathUtils.damp(vel.current.z, dz * MOVE_SPEED * boost, 9, step);
 
     const moveLen = Math.hypot(dx, dz);
     let turnScale = 1;
@@ -702,6 +705,10 @@ function Player({
     if (s.solved && plan.exit && !exitFired.current && Math.hypot(pos.x - plan.exit[0], pos.z - plan.exit[1]) < 0.9) {
       exitFired.current = true;
       events.current({ type: "exit" });
+    }
+    if (s.solved && plan.exit) {
+      const d = Math.hypot(pos.x - plan.exit[0], pos.z - plan.exit[1]);
+      if (d < 1.3) console.error("TMDBG " + JSON.stringify({ d: +d.toFixed(2), fired: exitFired.current, near: nearbyId.current }));
     }
   });
 

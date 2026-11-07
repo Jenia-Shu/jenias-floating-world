@@ -1,5 +1,5 @@
 /**
- * Tiny Maze — game state machine + DOM overlay (P1: Chapter 01).
+ * Tiny Maze — game state machine + DOM overlay (Chapters 01–03).
  *
  * Mirrors World Explorer's `useExplorerGame` shape: the hook owns state and
  * exposes `view.scene` for the shared canvas, while this file's component
@@ -23,7 +23,7 @@ import {
 import type { MazeEvent, MazeRuntime, MazeSceneProps, MazeStats } from "./MazeScene";
 import "./tiny-maze.css";
 
-const LEVEL: LevelDef = LEVELS[0]!;
+// LEVEL is chosen per-chapter inside the hook; this file lives in useTinyMazeGame.
 const TICKET: RewardId = "garden-path-ticket";
 
 type Phase = "intro" | "playing" | "paused" | "result";
@@ -44,6 +44,7 @@ export type MazeView = {
   result: RunResult | null;
   starsFound: number;
   completedBefore: boolean;
+  isFinal: boolean;
 };
 
 export type MazeActions = {
@@ -55,6 +56,7 @@ export type MazeActions = {
   showHint: (n: number) => void;
   dismissToast: () => void;
   exitToPark: () => void;
+  nextChapter: () => void;
 };
 
 type HookArgs = {
@@ -68,15 +70,23 @@ type HookArgs = {
   active: boolean;
 };
 
-const emptyStats = (): MazeStats => ({
+const emptyStats = (level: LevelDef): MazeStats => ({
   stars: [false, false, false],
   chest: false,
-  dirs: [...LEVEL.initialDirs],
+  dirs: [...level.initialDirs],
   solved: false,
 });
 
 export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion, onExit, active }: HookArgs) {
-  const plan = useMemo(() => parseGrid(LEVEL), []);
+  // Resume at the first chapter the player has not finished yet; if all are
+  // done, land on the last one so re-entry is a replay.
+  const [levelIndex, setLevelIndex] = useState(() => {
+    const i = LEVELS.findIndex((l) => !state.maze.levels[String(l.id)]?.completed);
+    return i === -1 ? LEVELS.length - 1 : i;
+  });
+  const LEVEL = LEVELS[levelIndex]!;
+  const plan = useMemo(() => parseGrid(LEVEL), [levelIndex]);
+  const isFinal = levelIndex === LEVELS.length - 1;
   const player = useRef(new THREE.Vector3(plan.start[0], 0, plan.start[1]));
   const keys = useRef(new Set<string>());
   const joystick = useRef({ x: 0, y: 0 });
@@ -84,7 +94,7 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
   const runtime = useMemo<MazeRuntime>(() => ({ player, keys, joystick, explored }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [phase, setPhase] = useState<Phase>("intro");
-  const [stats, setStats] = useState<MazeStats>(emptyStats);
+  const [stats, setStats] = useState<MazeStats>(emptyStats(LEVEL));
   const [nearby, setNearby] = useState<string | null>(null);
   const nearbyRef = useRef<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -111,7 +121,7 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
   /* -------------------------------------------------------------- actions */
 
   const resetRun = useCallback(() => {
-    setStats(emptyStats());
+    setStats(emptyStats(LEVEL));
     player.current.set(plan.start[0], 0, plan.start[1]);
     explored.current.clear();
     keys.current.clear();
@@ -125,6 +135,27 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     setMapOpen(false);
     setRunKey((n) => n + 1);
   }, [plan]);
+
+  // Advancing to the next chapter must start a clean run for the NEW chapter:
+  // the correct initial directions, a cleared fog-of-war, the princess back at
+  // its start. The 3D Player resets itself when `plan` changes, but the React
+  // run state and the explored set live in this hook, so we reset them here.
+  // Runs on mount too, which is harmless.
+  useEffect(() => {
+    setStats(emptyStats(LEVEL));
+    explored.current.clear();
+    keys.current.clear();
+    joystick.current.x = 0;
+    joystick.current.y = 0;
+    nearbyRef.current = null;
+    setNearby(null);
+    setToast(null);
+    setHintLevel(0);
+    setResult(null);
+    setMapOpen(false);
+    setRunKey((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelIndex]);
 
   const begin = useCallback(() => {
     const key = String(LEVEL.id);
@@ -159,6 +190,14 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     onExit();
   }, [resetRun, onExit]);
 
+  // Advance to the next chapter. The levelIndex change triggers the reset
+  // effect above, which rebuilds stats/explored for the new chapter and (via
+  // plan change) drops the princess at the new start.
+  const nextChapter = useCallback(() => {
+    setLevelIndex((i) => Math.min(i + 1, LEVELS.length - 1));
+    setPhase("intro");
+  }, []);
+
   const complete = useCallback(() => {
     const s = statsRef.current;
     const starCount = s.stars.filter(Boolean).length;
@@ -186,20 +225,27 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
       },
     };
 
-    // P1 slice: Chapter 01 is the only chapter, so finishing it completes the
-    // game and lights up Game 03. P2 moves this call to the fifth chapter.
-    const completion = markCompleted(withMaze, "tiny-maze");
-    const newTicket = !completion.state.rewards.includes(TICKET);
-    const next: FunState = newTicket
-      ? { ...completion.state, rewards: [...completion.state.rewards, TICKET] }
-      : completion.state;
-    commit(next);
-    if (completion.unlockedNext) onUnlocked(completion.unlockedNext);
-    playSound("complete");
-    setResult({ stars: starCount, chest: s.chest, newTicket, firstTime: completion.firstTime });
+    // The last chapter completes the whole game and unlocks Game 03; earlier
+    // chapters only record their own completion and let the player continue.
+    const isFinal = levelIndex === LEVELS.length - 1;
+    if (isFinal) {
+      const completion = markCompleted(withMaze, "tiny-maze");
+      const newTicket = !completion.state.rewards.includes(TICKET);
+      const next: FunState = newTicket
+        ? { ...completion.state, rewards: [...completion.state.rewards, TICKET] }
+        : completion.state;
+      commit(next);
+      if (completion.unlockedNext) onUnlocked(completion.unlockedNext);
+      playSound("complete");
+      setResult({ stars: starCount, chest: s.chest, newTicket, firstTime: completion.firstTime });
+    } else {
+      commit(withMaze);
+      playSound("complete");
+      setResult({ stars: starCount, chest: s.chest, newTicket: false, firstTime: false });
+    }
     setPhase("result");
     setMapOpen(false);
-  }, [commit, onUnlocked]);
+  }, [commit, onUnlocked, levelIndex]);
 
   const handleEvent = useCallback(
     (event: MazeEvent) => {
@@ -349,6 +395,7 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     result,
     starsFound: stats.stars.filter(Boolean).length,
     completedBefore: record.completed,
+    isFinal,
   };
 
   const actions: MazeActions = {
@@ -360,6 +407,7 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     showHint,
     dismissToast,
     exitToPark,
+    nextChapter,
   };
 
   // `tick` is intentionally read here so the live map re-renders while open.
@@ -582,13 +630,24 @@ function ResultCard({ view, actions, lang }: { view: MazeView; actions: MazeActi
           <p className="tm-note">{pick(lang, "A light turned on back in the Fun Zone.", "乐园里有一盏灯亮了。")}</p>
         )}
         <div className="tm-result-actions">
-          <button type="button" className="tm-primary" onClick={actions.exitToPark}>
-            {pick(lang, "Back to Fun Zone", "回到乐园")}
-          </button>
+          {view.isFinal ? (
+            <button type="button" className="tm-primary" onClick={actions.exitToPark}>
+              {pick(lang, "Back to Fun Zone", "回到乐园")}
+            </button>
+          ) : (
+            <button type="button" className="tm-primary" onClick={actions.nextChapter}>
+              {pick(lang, "Next chapter", "下一关")} <span aria-hidden>→</span>
+            </button>
+          )}
           <button type="button" className="tm-ghost" onClick={actions.replay}>
             {pick(lang, "Play again", "再玩一次")}
           </button>
         </div>
+        {!view.isFinal && (
+          <button type="button" className="tm-textbtn" onClick={actions.exitToPark}>
+            {pick(lang, "Leave for the Fun Zone", "先回乐园")}
+          </button>
+        )}
       </div>
     </div>
   );

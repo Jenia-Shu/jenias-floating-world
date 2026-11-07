@@ -94,6 +94,12 @@ export function RewardPiece({
       {def.glyph === "star" && <div className="fz-star" />}
       {def.glyph === "card" && <div className="fz-card">9/9</div>}
       {def.glyph === "badge" && <div className="fz-badge">{pick(lang, "FIRST EXPLORER", "世界初探者")}</div>}
+      {def.glyph === "letter" && (
+        <div className="fz-letter-relic">
+          <span className="fz-letter-relic-line" />
+          <span className="fz-letter-relic-mark">✦</span>
+        </div>
+      )}
       <span className="fz-relic-label">{pick(lang, def.name.en, def.name.zh)}</span>
     </div>
   );

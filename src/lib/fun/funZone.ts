@@ -20,7 +20,8 @@ export type RewardId =
   | "special-star"
   | "perfect-card"
   | "first-explorer-badge"
-  | "garden-path-ticket";
+  | "garden-path-ticket"
+  | "last-light-card";
 
 export type Bi = { en: string; zh: string };
 export const bi = (en: string, zh: string): Bi => ({ en, zh });
@@ -38,10 +39,15 @@ export type GameDef = {
   lockedHint: Bi;
 };
 
+/** Keepsake glyphs. `letter` is the closing card from Game 03. */
+export type RewardGlyph = "ticket" | "star" | "card" | "badge" | "letter";
+
 /**
- * Order is the Fun Zone progression. Game 02 / 03 are registered now so their
- * facilities exist in the park from day one; their implementations arrive in
- * later sessions without any change to this file's logic.
+ * Order is the Fun Zone progression. All three games are playable now; the
+ * third one is a quiet closing ceremony rather than another quiz or maze.
+ * The id stays `choice-adventure` on purpose — it is a saved-progress key and
+ * the key ParkScene uses for the facility's position. Renaming it would break
+ * visitors who already unlocked it.
  */
 /**
  * Facility wording is the user's confirmed 13:41 copy (FunZone-需求原档.md §4):
@@ -70,9 +76,9 @@ export const GAMES: GameDef[] = [
   {
     id: "choice-adventure",
     num: "03",
-    name: bi("The Choice Adventure", "故事剧场"),
-    tagline: bi("Take a seat", "坐下听故事"),
-    available: false,
+    name: bi("The Last Light", "最后一束光"),
+    tagline: bi("Step into the light", "走进那束光"),
+    available: true,
     requires: "tiny-maze",
     lockedHint: bi("Finish the last stop first.", "先完成上一站"),
   },
@@ -87,7 +93,7 @@ export type RewardDef = {
   id: RewardId;
   name: Bi;
   note: Bi;
-  glyph: "ticket" | "star" | "card" | "badge";
+  glyph: RewardGlyph;
   rare?: boolean;
 };
 
@@ -130,6 +136,12 @@ export const REWARDS: RewardDef[] = [
     name: bi("Garden Path Ticket", "花园小径纪念票"),
     note: bi("A keepsake from the first little maze.", "第一座小迷宫的纪念票。"),
     glyph: "ticket",
+  },
+  {
+    id: "last-light-card",
+    name: bi("The Last Light Card", "最后一束光纪念卡"),
+    note: bi("A card with the one thought you chose to carry home.", "写着你带走的那一句话的纪念卡。"),
+    glyph: "letter",
   },
 ];
 
