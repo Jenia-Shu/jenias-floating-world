@@ -327,11 +327,12 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
       stats,
       reducedMotion,
       paused: phase !== "playing",
+      lang,
       onEvent: handleEvent,
       onNearby: handleNearby,
       runKey,
     }),
-    [plan, runtime, stats, reducedMotion, phase, handleEvent, handleNearby, runKey],
+    [plan, runtime, stats, reducedMotion, phase, lang, handleEvent, handleNearby, runKey],
   );
 
   const view: MazeView = {

@@ -25,13 +25,16 @@ import {
   Tree,
   WoodSign,
 } from "@/components/fun/scene/shared";
+import type { Lang } from "@/lib/i18n";
 import {
+  bi,
   CELL,
   INTERACT_RANGE,
   MOVE_SPEED,
   PLAYER_RADIUS,
   worldToCell,
   yawForDir,
+  type Bi,
   type LevelDef,
   type MazePlan,
   type Pt,
@@ -61,6 +64,7 @@ export type MazeSceneProps = {
   stats: MazeStats;
   reducedMotion: boolean;
   paused: boolean;
+  lang: Lang;
   /** Incremented on every replay so a fresh run clears one-shot pickups. */
   runKey: number;
   onEvent: (event: MazeEvent) => void;
@@ -188,19 +192,81 @@ function Hedges({ plan, level }: { plan: MazePlan; level: LevelDef }) {
 
 /* ------------------------------------------------------------- props / set */
 
+/** A recognizable bloom per flower type, sitting on the turning head. */
+function FlowerHead({ index }: { index: number }) {
+  if (index === 1) {
+    // Daisy — white petals around a gold centre.
+    const petals = Array.from({ length: 8 }, (_, i) => {
+      const a = (i / 8) * Math.PI * 2;
+      return { x: Math.cos(a) * 0.17, z: Math.sin(a) * 0.17, a };
+    });
+    return (
+      <group>
+        {petals.map((p, i) => (
+          <mesh key={i} position={[p.x, 0, p.z]} rotation={[Math.PI / 2, 0, -p.a]} castShadow>
+            <sphereGeometry args={[0.082, 10, 8]} />
+            <meshStandardMaterial color="#fbf7ee" roughness={0.85} />
+          </mesh>
+        ))}
+        <mesh castShadow>
+          <sphereGeometry args={[0.11, 14, 12]} />
+          <meshStandardMaterial color="#e7b53c" roughness={0.8} />
+        </mesh>
+      </group>
+    );
+  }
+  if (index === 2) {
+    // Tulip — a cupped bloom with three soft lobes.
+    return (
+      <group>
+        <mesh position={[0, 0.02, 0]} castShadow>
+          <cylinderGeometry args={[0.14, 0.1, 0.3, 14]} />
+          <meshStandardMaterial color="#e98aa6" roughness={0.78} />
+        </mesh>
+        {[-0.07, 0, 0.07].map((x, i) => (
+          <mesh key={i} position={[x, 0.17, (i - 1) * 0.03]} rotation={[0, 0, (i - 1) * 0.22]} castShadow>
+            <sphereGeometry args={[0.075, 10, 8]} />
+            <meshStandardMaterial color="#f2a6bd" roughness={0.78} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+  // Rose — a rounded red bloom with a hint of ruffled petals.
+  return (
+    <group>
+      <mesh castShadow>
+        <sphereGeometry args={[0.17, 16, 14]} />
+        <meshStandardMaterial color="#e0627f" roughness={0.76} />
+      </mesh>
+      <mesh scale={[1.18, 0.72, 1.18]}>
+        <torusGeometry args={[0.11, 0.05, 10, 20]} />
+        <meshStandardMaterial color="#cf5572" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.04, 0]} scale={[0.7, 0.5, 0.7]}>
+        <torusGeometry args={[0.1, 0.045, 10, 20]} />
+        <meshStandardMaterial color="#d96a86" roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
 function Statue({
   p,
   dir,
   index,
+  flower,
+  lang,
   reducedMotion,
 }: {
   p: Pt;
   dir: number;
   index: number;
+  flower: Bi;
+  lang: Lang;
   reducedMotion: boolean;
 }) {
   const spin = useRef<THREE.Group>(null);
-  const color = ["#f2a8b6", "#f6e6b4", "#efb7a0"][index] ?? "#f2a8b6";
   useFrame((_, dt) => {
     if (!spin.current) return;
     const target = yawForDir(dir);
@@ -210,33 +276,36 @@ function Statue({
   });
   return (
     <group position={[p[0], 0, p[1]]}>
-      <mesh position={[0, 0.34, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.19, 0.23, 0.68, 10]} />
+      {/* planted stone base so it reads as an installed statue, not a hedge */}
+      <mesh position={[0, 0.03, 0]} receiveShadow castShadow>
+        <cylinderGeometry args={[0.36, 0.42, 0.07, 18]} />
         <meshStandardMaterial color={PALETTE.stone} roughness={0.95} />
       </mesh>
-      <mesh position={[0, 0.7, 0]} castShadow>
-        <cylinderGeometry args={[0.22, 0.22, 0.07, 10]} />
+      {/* pedestal column */}
+      <mesh position={[0, 0.34, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.22, 0.3, 0.64, 16]} />
+        <meshStandardMaterial color="#bdb9a8" roughness={0.92} />
+      </mesh>
+      {/* collar */}
+      <mesh position={[0, 0.69, 0]} castShadow>
+        <cylinderGeometry args={[0.27, 0.27, 0.09, 16]} />
         <meshStandardMaterial color={PALETTE.cream} roughness={0.9} />
       </mesh>
-      <group ref={spin} position={[0, 0.79, 0]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.105, 12, 10]} />
-          <meshStandardMaterial color={color} roughness={0.85} />
+
+      {/* the flower head, turning to face its assigned direction */}
+      <group ref={spin} position={[0, 0.86, 0]}>
+        <FlowerHead index={index} />
+        {/* gold pointer: +z is the way the flower faces */}
+        <mesh position={[0, -0.16, 0.32]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <coneGeometry args={[0.07, 0.28, 10]} />
+          <meshStandardMaterial color={PALETTE.gold} metalness={0.5} roughness={0.35} />
         </mesh>
-        {[0, 1, 2, 3, 4].map((i) => {
-          const a = (i / 5) * Math.PI * 2;
-          return (
-            <mesh key={i} position={[Math.cos(a) * 0.13, 0.01, Math.sin(a) * 0.13]}>
-              <sphereGeometry args={[0.055, 8, 6]} />
-              <meshStandardMaterial color={color} roughness={0.9} />
-            </mesh>
-          );
-        })}
-        {/* the gold pointer: +z is the direction the flower faces */}
-        <mesh position={[0, -0.04, 0.22]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <coneGeometry args={[0.052, 0.19, 8]} />
-          <meshStandardMaterial color={PALETTE.gold} metalness={0.45} roughness={0.4} />
-        </mesh>
+      </group>
+
+      {/* a floating name, readable from the follow camera, so the player knows
+          which flower this statue is */}
+      <group position={[0, 1.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <Label text={bi(lang, flower)} width={1.3} height={0.28} size={48} color="#6b5a3e" />
       </group>
     </group>
   );
@@ -368,11 +437,13 @@ function GardenWorld({
   plan,
   stats,
   reducedMotion,
+  lang,
 }: {
   level: LevelDef;
   plan: MazePlan;
   stats: MazeStats;
   reducedMotion: boolean;
+  lang: Lang;
 }) {
   const w = plan.cols * CELL;
   const d = plan.rows * CELL;
@@ -429,8 +500,14 @@ function GardenWorld({
       </group>
 
       {plan.sign && (
-        <group position={[plan.sign[0], 0, plan.sign[1]]}>
-          <WoodSign text="CLUE" width={1.0} />
+        <group position={[plan.sign[0], 0.55, plan.sign[1]]}>
+          <WoodSign text={lang === "zh" ? "提示" : "CLUE"} width={1.35} />
+          {/* a glowing beacon so the sign is easy to spot across the garden */}
+          <mesh position={[0, 1.05, 0]}>
+            <sphereGeometry args={[0.07, 12, 10]} />
+            <meshStandardMaterial color={PALETTE.goldLight} emissive="#ffd98a" emissiveIntensity={1} />
+          </mesh>
+          <pointLight position={[0, 1.2, 0]} color="#ffdca0" intensity={0.5} distance={3.5} />
         </group>
       )}
       <group position={[0, 0.02, plan.rows * CELL * 0.36]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -438,7 +515,15 @@ function GardenWorld({
       </group>
 
       {plan.statues.map((p, i) => (
-        <Statue key={i} p={p} dir={stats.dirs[i] ?? level.initialDirs[i] ?? 0} index={i} reducedMotion={reducedMotion} />
+        <Statue
+          key={i}
+          p={p}
+          dir={stats.dirs[i] ?? level.initialDirs[i] ?? 0}
+          index={i}
+          flower={level.flowers[i] ?? { en: "Flower", zh: "花" }}
+          lang={lang}
+          reducedMotion={reducedMotion}
+        />
       ))}
       {plan.gate && <Gate p={plan.gate} solved={stats.solved} reducedMotion={reducedMotion} />}
       {plan.exit && <ExitArch p={plan.exit} reducedMotion={reducedMotion} />}
@@ -623,9 +708,18 @@ function Player({
   return (
     <group ref={root} position={[plan.start[0], 0, plan.start[1]]} scale={1.65} name="maze-princess">
       <CollieBody body={body} head={head} tail={tail} legs={legs} />
-      <RoundedBox args={[0.13, 0.11, 0.07]} radius={0.03} smoothness={2} position={[0, 0.3, -0.1]} castShadow>
-        <meshStandardMaterial color="#9fc4dd" roughness={0.85} />
-      </RoundedBox>
+      {/* a small soft-blue backpack, clearly strapped to her back — not a seat */}
+      <group position={[0, 0.27, -0.05]} rotation={[0.55, 0, 0]}>
+        <RoundedBox args={[0.11, 0.1, 0.055]} radius={0.028} smoothness={3} castShadow>
+          <meshStandardMaterial color="#9fc4dd" roughness={0.85} />
+        </RoundedBox>
+        {[0.046, -0.046].map((x) => (
+          <mesh key={x} position={[x, 0.04, 0.055]} rotation={[0, 0, x > 0 ? 0.18 : -0.18]}>
+            <boxGeometry args={[0.016, 0.15, 0.018]} />
+            <meshStandardMaterial color="#7fa8c4" roughness={0.9} />
+          </mesh>
+        ))}
+      </group>
     </group>
   );
 }
@@ -639,6 +733,7 @@ export function MazeScene({
   stats,
   reducedMotion,
   paused,
+  lang,
   runKey,
   onEvent,
   onNearby,
@@ -651,7 +746,7 @@ export function MazeScene({
   return (
     <>
       <MazeCamera runtime={runtime} reducedMotion={reducedMotion} />
-      <GardenWorld level={level} plan={plan} stats={stats} reducedMotion={reducedMotion} />
+      <GardenWorld level={level} plan={plan} stats={stats} reducedMotion={reducedMotion} lang={lang} />
       <Player
         plan={plan}
         walls={walls}

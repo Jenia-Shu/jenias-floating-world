@@ -208,10 +208,18 @@ export function parseGrid(level: LevelDef): MazePlan {
       const cell: Cell = { row: r, col: c, x, z };
       cells.push(ch);
 
-      if (ch === "#" || ch === "D") {
+      if (ch === "#") {
+        // Plain hedge: it blocks movement and is drawn as a green hedge.
         walls.push(wallAt(x, z));
         hedgeCells.push(cell);
-        if (ch === "D") statues.push([x, z]);
+        continue;
+      }
+      if (ch === "D") {
+        // A statue fills this cell. It still blocks movement like a hedge, but
+        // it must NOT be drawn as a hedge — otherwise the green block buries it
+        // and the player can never see or recognise what the statue is.
+        walls.push(wallAt(x, z));
+        statues.push([x, z]);
         continue;
       }
       if (ch === "G") {
