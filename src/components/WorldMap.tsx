@@ -21,6 +21,7 @@ import { LangSwitch } from "./LangSwitch";
 import { WorldPage } from "./WorldPage";
 import { LetterModal } from "./world/LetterModal";
 import { BridgeToFun } from "./message/BridgeToFun";
+import { GuideDialogue } from "./world/GuideDialogue";
 
 const WorldScene = lazy(() => import("./world/WorldScene"));
 
@@ -313,7 +314,32 @@ export function WorldMap({
   const storeKey = useMemo(() => visitedKey(user), [user]);
   const bottleStoreKey = useMemo(() => bottleKey(user), [user]);
 
+  // First-time visitors meet a guide (Princess the border collie). The flag is
+  // sticky so the welcome only plays once; `?onboard=force` replays it for review.
+  const [onboarding, setOnboarding] = useState(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboard") === "force") return true;
+    try {
+      if (localStorage.getItem("jenia:onboarded:v1")) return false;
+    } catch {
+      // ignore storage failures — fall through to the visited check
+    }
+    return readVisited(storeKey).length === 0;
+  });
+
   const markReady = useCallback(() => setPhase("ready"), []);
+  // Dismiss the guide: remember it for next time (unless previewing with
+  // ?onboard=force), grow the home island, and hand the world back to the visitor.
+  const finishOnboarding = useCallback(() => {
+    if (new URLSearchParams(window.location.search).get("onboard") !== "force") {
+      try {
+        localStorage.setItem("jenia:onboarded:v1", "1");
+      } catch {
+        // ignore storage failures
+      }
+    }
+    setVisited((prev) => (prev.includes("about") ? prev : [...prev, "about"]));
+    setOnboarding(false);
+  }, []);
   // The Message Island has no chapter page. Its 3D label zooms into the island
   // so the bottle can be tapped again; the no-WebGL fallback list opens the
   // letter itself. Neither route should land on the old reading page.
@@ -507,6 +533,7 @@ export function WorldMap({
               key={attempt}
               reducedMotion={reducedMotion}
               visited={visited}
+              onboarding={onboarding}
               onOpenRegion={openRegion}
               onReady={markReady}
               paused={!active || Boolean(openId) || wallOpen || letterOpen}
@@ -522,6 +549,13 @@ export function WorldMap({
           </Suspense>
         </SceneBoundary>
       </div>
+
+      <GuideDialogue
+        active={onboarding}
+        lang={lang}
+        reducedMotion={reducedMotion}
+        onFinish={finishOnboarding}
+      />
 
       {phase === "loading" && (
         <div className="absolute inset-0 grid place-items-center" role="status" aria-live="polite">

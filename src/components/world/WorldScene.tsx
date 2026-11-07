@@ -201,6 +201,9 @@ type LabelTarget = { el: HTMLElement | null; world: THREE.Vector3; bob: number }
 /** Framing for the bottle delivery on the Message Island: the collie and the tide pool. */
 const DELIVERY_CAMERA: CameraCue = { pos: [14.2, 0.25, 7.05], target: [13.2, -1.05, 4.15], dur: 1.5 };
 
+/** First-visit guide: lean onto the princess (the border collie) on the home island. */
+const GUIDE_CAMERA: CameraCue = { pos: [2.6, 1.5, 3.4], target: [0, 0.55, 0], dur: 1.6 };
+
 /** Projects world points to screen each frame and positions plain DOM labels. */
 function LabelProjector({
   targets,
@@ -521,6 +524,8 @@ function SurpriseOverlay({ kind }: { kind: string }) {
 type Props = {
   reducedMotion: boolean;
   visited: readonly string[];
+  /** First-time visitors get a guide: the camera leans onto the princess and holds. */
+  onboarding?: boolean;
   onOpenRegion: (id: string) => void;
   onReady: () => void;
   /** Stop drawing while a page covers the map — frees the GPU and the context budget. */
@@ -544,6 +549,7 @@ type Props = {
 export default function WorldScene({
   reducedMotion,
   visited,
+  onboarding = false,
   onOpenRegion,
   onReady,
   paused = false,
@@ -563,6 +569,8 @@ export default function WorldScene({
   const [focus, setFocus] = useState<string | null>(null);
   /** The bottle delivery: the camera holds still and the labels step aside. */
   const [cine, setCine] = useState(false);
+  /** True once the first-visit guide has taken hold, so the cue fires only once. */
+  const guideStarted = useRef(false);
   /** "Read the letter" zoomed onto the Message Island — labels step aside too. */
   const [letterView, setLetterView] = useState(false);
   const [cue, setCue] = useState<CameraCue | null>(null);
@@ -628,6 +636,27 @@ export default function WorldScene({
     }, 700);
     return () => window.clearTimeout(id);
   }, [bottleDue, introReady]);
+
+  // First-time visitors get a guide: the camera leans onto the princess (the
+  // border collie) on the home island and stays put while she speaks. It only
+  // fires after the opening swoop has landed, like the bottle delivery.
+  useEffect(() => {
+    if (!onboarding || !introReady || guideStarted.current) return;
+    guideStarted.current = true;
+    setFocus(null);
+    setCue(GUIDE_CAMERA);
+    setCine(true);
+  }, [onboarding, introReady]);
+
+  // Releasing the guide sends the camera back to the overview and frees the orbit.
+  useEffect(() => {
+    if (onboarding || !guideStarted.current) return;
+    guideStarted.current = false;
+    setCue(null);
+    setFocus(null);
+    setCine(false);
+    setResetSignal((n) => n + 1);
+  }, [onboarding]);
 
   // Closing the letter returns to the overview, not to whatever was framed before.
   const lastTick = useRef(overviewTick);
@@ -845,7 +874,7 @@ export default function WorldScene({
             onSelect={() => focusIsland("about")}
             hovered={hovered}
             setHovered={setHovered}
-            revealed={true}
+            revealed={!onboarding}
             onEgg={onEgg}
           />
           {REGIONS_3D.map((r) => (
@@ -875,7 +904,7 @@ export default function WorldScene({
             />
           )}
           <SteppingRocks />
-          {!cine && !(bottleFloating && bottleUnread) && (
+          {(onboarding || (!cine && !(bottleFloating && bottleUnread))) && (
             <Collie reducedMotion={reducedMotion} onFound={onAnimal} onPoke={onColliePoke} />
           )}
           <Cloud position={[-14, 6, -16]} scale={2.2} speed={0.04} reducedMotion={reducedMotion} />
