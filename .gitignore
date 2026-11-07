@@ -33,3 +33,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Princess reference photo — private, local only.
+# The user supplied a real photo of her dog as a modelling reference.
+# Kept on disk in docs/assets/ but NOT pushed to the public repo
+# (a public git history cannot be truly undone). Remove this line only
+# if the user explicitly asks to carry the photo with the repository.
+docs/assets/
