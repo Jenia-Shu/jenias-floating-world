@@ -706,10 +706,6 @@ function Player({
       exitFired.current = true;
       events.current({ type: "exit" });
     }
-    if (s.solved && plan.exit) {
-      const d = Math.hypot(pos.x - plan.exit[0], pos.z - plan.exit[1]);
-      if (d < 1.3) console.error("TMDBG " + JSON.stringify({ d: +d.toFixed(2), fired: exitFired.current, near: nearbyId.current }));
-    }
   });
 
   return (

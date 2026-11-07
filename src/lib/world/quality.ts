@@ -7,10 +7,10 @@
  * per second, and 4x MSAA is the single biggest cost there.
  *
  * Tiers:
- *  - "low"      software renderer or low-memory machine: no MSAA, 0.75x
- *               resolution, small shadow maps, shadow refresh every 3rd frame
- *  - "balanced" default for real GPUs: modest dpr, 1024/512 shadows, refresh
- *               every 2nd frame (visually identical to every frame here)
+ *  - "low"      software renderer or low-memory machine: no MSAA, 0.6x
+ *               resolution, tiny shadow maps, shadow refresh every 4th frame
+ *  - "balanced" default for real GPUs: MSAA on, dpr 1, 1024/512 shadows,
+ *               shadow refresh every 3rd frame, frame cap at 40
  *  - "high"     `?quality=high`: the original, untouched visual settings
  *
  * `?quality=low|balanced|high` forces a tier, which makes A/B checking easy.
@@ -36,11 +36,14 @@ const TIERS: Record<Quality, { world: SceneSettings; fun: SceneSettings }> = {
     fun: { dpr: 0.6, antialias: false, shadowSize: 256, shadowEvery: 4, fpsCap: 30 },
   },
   balanced: {
-    // Default for real GPUs. MSAA (antialias) is by far the heaviest cost on
-    // weak integrated graphics, so it is off here; smaller shadows + a touch
-    // lower dpr + a frame cap keep the scene smooth without looking flat.
-    world: { dpr: 0.85, antialias: false, shadowSize: 512, shadowEvery: 4, fpsCap: 36 },
-    fun: { dpr: 0.85, antialias: false, shadowSize: 512, shadowEvery: 4, fpsCap: 36 },
+    // Default for real GPUs. MSAA (antialias) is back ON: the "stutter" the
+    // user hit earlier came from the scene re-rendering every single frame,
+    // which is now fixed by the demand frameloop + FrameCap throttle (see
+    // FrameCap / WorldScene). With rendering throttled, MSAA is affordable and
+    // edges stop looking like Minecraft. dpr 1 + 1024/512 shadows keep it
+    // crisp; shadowEvery 3 is visually identical to every frame here.
+    world: { dpr: 1, antialias: true, shadowSize: 1024, shadowEvery: 3, fpsCap: 40 },
+    fun: { dpr: 1, antialias: true, shadowSize: 512, shadowEvery: 3, fpsCap: 40 },
   },
   high: {
     world: { dpr: [1, 1.25], antialias: true, shadowSize: 2048, shadowEvery: 1, fpsCap: 60 },
