@@ -2,8 +2,14 @@ import { useEffect, useRef } from "react";
 import { LETTER } from "@/lib/world/letter";
 import { pick, useLang } from "@/lib/i18n";
 
+type Props = {
+  onClose: () => void;
+  /** The collie leads on from the end of the letter into the Fun Zone. */
+  onFollow?: (() => void) | undefined;
+};
+
 /** The letter found inside the drifting bottle. */
-export function LetterModal({ onClose }: { onClose: () => void }) {
+export function LetterModal({ onClose, onFollow }: Props) {
   const [lang] = useLang();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -63,6 +69,23 @@ export function LetterModal({ onClose }: { onClose: () => void }) {
                 {pick(lang, "It stays in the little wooden box", "它会一直留在小木箱里")}
               </span>
             </div>
+
+            {/* The Message Island now ends at the letter itself, so this is the
+                hand-over to the Fun Zone: the collie waits past the last line. */}
+            {onFollow && (
+              <div className="mt-6 border-t border-[#8a7a60]/25 pt-5 text-center">
+                <p className="text-[0.58rem] tracking-[0.3em] uppercase text-[#8a7a60]">
+                  {pick(lang, "A NEW PLACE TO DISCOVER", "云雾的另一边")}
+                </p>
+                <button
+                  type="button"
+                  onClick={onFollow}
+                  className="mt-3 rounded-full border border-[#8a7a60]/45 px-5 py-2 text-[0.72rem] tracking-[0.08em] text-[#33404f] transition hover:bg-[#33404f]/5"
+                >
+                  {pick(lang, "Follow her", "跟上它")} <span aria-hidden>→</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

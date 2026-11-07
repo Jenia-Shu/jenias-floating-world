@@ -1,0 +1,205 @@
+/* The crossing from A Little Message / 一封信的岛 into the Fun Zone.
+ *
+ * Deliberately DOM + SVG only: no second WebGL context (a known blank-screen
+ * trap in this project), no audio, no new dependency, no image downloads.
+ * The fog is the whole trick — while it is thickest the map page is swapped
+ * for the 3D park behind it, so the two canvases never visibly jump.
+ *
+ * Light theme, using the same pale blue / cream / soft wood palette as the
+ * rest of Jenia's World. Reduced motion skips the whole interlude in TSX.
+ */
+
+.btf-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  color: #40504e;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+/* ------------------------------------------------------------------ the fog */
+
+.btf-fog {
+  position: absolute;
+  inset: -8%;
+  background: radial-gradient(
+    ellipse 62% 54% at 50% 56%,
+    rgba(255, 255, 255, 0.985),
+    rgba(233, 242, 247, 0.96) 58%,
+    rgba(209, 228, 239, 0.94) 100%
+  );
+  animation: btf-veil 4.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes btf-veil {
+  0% { opacity: 0; transform: scale(1.16); }
+  20% { opacity: 1; transform: scale(1); }
+  51% { opacity: 1; transform: scale(1); }
+  86% { opacity: 0.42; transform: scale(1.16); }
+  100% { opacity: 0; transform: scale(1.42); }
+}
+
+.btf-cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  filter: blur(30px);
+  animation: btf-drift 8s ease-in-out infinite alternate;
+}
+
+@keyframes btf-drift {
+  from { transform: translate3d(-18px, 6px, 0) scale(1); }
+  to { transform: translate3d(22px, -10px, 0) scale(1.12); }
+}
+
+/* ------------------------------------------------- what dimly shows through */
+
+.btf-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: btf-scene-fade 4.3s ease-in-out forwards;
+}
+
+@keyframes btf-scene-fade {
+  0%, 8% { opacity: 0; }
+  26%, 48% { opacity: 1; }
+  76%, 100% { opacity: 0; }
+}
+
+.btf-bridge {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(1100px, 132vw);
+  height: min(46vh, 380px);
+  transform: translateX(-50%);
+  opacity: 0.58;
+}
+
+.btf-wheel-wrap {
+  position: absolute;
+  left: 56%;
+  top: 25%;
+  width: clamp(86px, 13vw, 150px);
+  aspect-ratio: 1;
+  opacity: 0.46;
+  filter: blur(0.5px);
+}
+
+.btf-wheel {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  animation: btf-spin 24s linear infinite;
+}
+
+@keyframes btf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The black-and-white border collie walks away down the bridge, towards the
+   wheel waiting at the far end. Scale shrinks with the perspective. */
+.btf-collie-wrap {
+  position: absolute;
+  left: 25%;
+  bottom: 21%;
+  width: clamp(56px, 7vw, 90px);
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: btf-walk 3s cubic-bezier(0.32, 0, 0.5, 1) 0.35s forwards;
+}
+
+@keyframes btf-walk {
+  0% { transform: translate(0, 0) scale(1.12); opacity: 0; }
+  12% { opacity: 0.92; }
+  78% { opacity: 0.92; }
+  100% { transform: translate(18vw, -11vh) scale(0.46); opacity: 0; }
+}
+
+/* -------------------------------------------------------------- words + skip */
+
+.btf-caption {
+  position: absolute;
+  inset-inline: 0;
+  top: 11%;
+  text-align: center;
+  pointer-events: none;
+  animation: btf-caption 4.3s ease-in-out forwards;
+}
+
+@keyframes btf-caption {
+  0%, 10% { opacity: 0; transform: translateY(10px); }
+  24%, 50% { opacity: 1; transform: translateY(0); }
+  76%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+.btf-kicker {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #7a8c86;
+}
+
+.btf-title {
+  margin: 10px 0 0;
+  font-family: "Great Vibes", cursive;
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  line-height: 1;
+  font-weight: 400;
+  color: #40504e;
+}
+
+.btf-sub {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: #7a8c86;
+}
+
+.btf-skip {
+  position: absolute;
+  right: 22px;
+  bottom: 20px;
+  padding: 8px 14px;
+  border: 1px solid rgba(120, 145, 150, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #5b6f6c;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.btf-skip:hover {
+  background: rgba(255, 255, 255, 0.92);
+  color: #33423f;
+}
+
+.btf-skip:focus-visible {
+  outline: 2px solid #6d8f96;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .btf-caption { top: 12%; }
+  .btf-wheel-wrap { left: 60%; top: 27%; width: clamp(74px, 22vw, 110px); }
+  .btf-collie-wrap { left: 18%; bottom: 24%; }
+  .btf-bridge { width: 160vw; height: 38vh; }
+  .btf-skip { right: 16px; bottom: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btf-fog,
+  .btf-cloud,
+  .btf-scene,
+  .btf-wheel,
+  .btf-collie-wrap,
+  .btf-caption {
+    animation: none;
+  }
+}

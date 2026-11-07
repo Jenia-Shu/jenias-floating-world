@@ -1,0 +1,902 @@
+/* Fun Zone — one cozy visual language shared by the park, the game and the
+   collectible rewards. Light theme only, matching the rest of Jenia's World. */
+
+.fz-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  color: #40504e;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  background: #e4eff4;
+}
+
+.fz-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.fz-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, transparent 46%, rgba(112, 145, 158, 0.16) 100%);
+}
+
+.fz-header {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.fz-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(80, 112, 126, 0.12);
+  color: #4a5f60;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.fz-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(217, 184, 119, 0.85);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.fz-chip:focus-visible,
+.fz-btn:focus-visible,
+.fz-option:focus-visible {
+  outline: 3px solid rgba(126, 175, 206, 0.7);
+  outline-offset: 3px;
+}
+
+.fz-chip[aria-pressed="false"] {
+  opacity: 0.55;
+}
+
+/* ------------------------------------------------------------- text block */
+
+.fz-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #a98a52;
+}
+
+.fz-display {
+  font-family: "Great Vibes", cursive;
+  font-weight: 400;
+  line-height: 0.98;
+  color: #3c5658;
+}
+
+.fz-title {
+  font-size: clamp(2.6rem, 7vw, 5.2rem);
+}
+
+.fz-sub {
+  margin-top: 10px;
+  font-size: clamp(0.82rem, 1.9vw, 1rem);
+  letter-spacing: 0.16em;
+  color: #6d8684;
+}
+
+.fz-glass {
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.88), rgba(244, 249, 250, 0.76));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(76, 110, 124, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.fz-panel {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 26px 28px;
+}
+
+.fz-panel--intro {
+  top: 50%;
+  margin-top: -170px;
+  text-align: center;
+}
+
+.fz-panel--story {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+  text-align: center;
+}
+
+.fz-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 11px 24px;
+  border: 1px solid rgba(217, 184, 119, 0.8);
+  border-radius: 999px;
+  background: linear-gradient(160deg, #fffaf0, #f2e5c9);
+  color: #5b4a2e;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(176, 146, 92, 0.2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fz-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(176, 146, 92, 0.28);
+}
+
+.fz-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+  color: #4a5f60;
+  box-shadow: 0 5px 16px rgba(80, 112, 126, 0.12);
+}
+
+.fz-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+/* -------------------------------------------------------------- speech */
+
+.fz-speech {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(76, 110, 124, 0.15);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #475b5b;
+  animation: fz-rise 0.45s ease both;
+}
+
+.fz-speech-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #f6f3ec 0 48%, #282d33 48% 100%);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 1.05rem;
+}
+
+.fz-speech-name {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #a98a52;
+}
+
+/* ------------------------------------------------------------- question */
+
+.fz-quest {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  top: clamp(72px, 11vh, 118px);
+  transform: translateX(-50%);
+  width: min(600px, calc(100vw - 28px));
+  max-height: min(68vh, 620px);
+  overflow-y: auto;
+  padding: 20px 22px 22px;
+  animation: fz-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fz-quest-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fz-progress {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.fz-progress i {
+  width: 16px;
+  height: 5px;
+  border-radius: 99px;
+  background: #d8e2df;
+  transition: background 0.35s ease;
+}
+
+.fz-progress i.on {
+  background: #d9b877;
+}
+
+.fz-progress i.now {
+  background: #7fa9c4;
+  width: 22px;
+}
+
+.fz-quest h2 {
+  margin: 16px 0 0;
+  font-size: clamp(1rem, 2.4vw, 1.22rem);
+  font-weight: 800;
+  line-height: 1.6;
+  color: #3c5252;
+}
+
+.fz-clue {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid #d9b877;
+  border-radius: 0 14px 14px 0;
+  background: rgba(247, 240, 224, 0.8);
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: #6a6047;
+}
+
+.fz-visual {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 16px auto 2px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.fz-swatch {
+  display: grid;
+  place-items: end center;
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  border: 3px solid #fff;
+  box-shadow: 0 6px 16px rgba(70, 100, 110, 0.16);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fff;
+  padding-bottom: 5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.fz-facility {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fff, #eaf2ec);
+  border: 1px solid #dde8de;
+  font-size: 1.6rem;
+}
+
+.fz-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.fz-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(190, 208, 210, 0.85);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #405454;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.fz-option:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #9fc4dd;
+  background: #fff;
+}
+
+.fz-option:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.fz-option b {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #edf3f2;
+  color: #6c8584;
+  font-size: 0.72rem;
+}
+
+.fz-option.picked {
+  border-color: #7fa9c4;
+  background: #eef7fb;
+}
+
+.fz-option.correct {
+  border-color: #9dbf95;
+  background: linear-gradient(150deg, #f0f8ec, #dcefd7);
+  animation: fz-pop 0.4s ease both;
+}
+
+.fz-option.correct b {
+  background: #9dbf95;
+  color: #fff;
+}
+
+.fz-option.wrong {
+  border-color: #e4c3ad;
+  background: #fbf1e9;
+}
+
+.fz-option.wrong b {
+  background: #e4c3ad;
+  color: #fff;
+}
+
+.fz-feedback {
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  animation: fz-rise 0.3s ease both;
+}
+
+.fz-feedback.ok {
+  background: rgba(224, 241, 216, 0.9);
+  color: #4c7148;
+}
+
+.fz-feedback.no {
+  background: rgba(251, 239, 228, 0.92);
+  color: #8a6549;
+}
+
+.fz-quest-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.fz-hintline {
+  margin: 12px 0 0;
+  padding: 10px 13px;
+  border-radius: 13px;
+  background: rgba(233, 242, 247, 0.92);
+  color: #527185;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  animation: fz-rise 0.3s ease both;
+}
+
+.fz-textbtn {
+  border: 0;
+  background: transparent;
+  padding: 6px 2px;
+  color: #7a928f;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fz-textbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --------------------------------------------------------------- chapter */
+
+.fz-chapter {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 32px));
+  padding: 28px;
+  text-align: center;
+  animation: fz-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fz-chapter-num {
+  font-family: "Great Vibes", cursive;
+  font-size: 4rem;
+  color: #d9b877;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------- rewards */
+
+.fz-relics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.fz-relic {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 128px;
+  animation: fz-rise 0.5s ease both;
+}
+
+.fz-relic-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #6b7f7c;
+  text-align: center;
+}
+
+.fz-relic-new {
+  position: absolute;
+  top: -8px;
+  right: 2px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #d9b877;
+  color: #fff;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.fz-ticket {
+  position: relative;
+  width: 122px;
+  height: 78px;
+  border-radius: 12px;
+  border: 2px solid #d9b877;
+  background: linear-gradient(150deg, #fffdf6, #f4e9d0);
+  box-shadow: 0 10px 20px rgba(150, 124, 76, 0.22), inset 0 1px 0 #fff;
+  padding: 10px 12px;
+  text-align: left;
+  overflow: hidden;
+}
+
+.fz-ticket::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 32px;
+  border-left: 2px dashed rgba(196, 166, 110, 0.7);
+}
+
+.fz-ticket::before {
+  content: "";
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #eef4f4;
+  transform: translateY(-50%);
+  box-shadow: 0 -40px 0 -1px #eef4f4;
+}
+
+.fz-ticket strong {
+  display: block;
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  color: #9c7c43;
+}
+
+.fz-ticket span {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.6rem;
+  color: #6f6a58;
+  line-height: 1.5;
+}
+
+.fz-star {
+  width: 76px;
+  height: 76px;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: linear-gradient(150deg, #fff0c4, #d9b877 62%, #b8934f);
+  filter: drop-shadow(0 8px 12px rgba(170, 139, 79, 0.32));
+}
+
+.fz-card {
+  width: 92px;
+  height: 76px;
+  border-radius: 12px;
+  border: 2px solid #d9b877;
+  background: linear-gradient(135deg, #fbf6e8, #e9f1f2 45%, #f6e7c8 80%, #eef6f7);
+  box-shadow: 0 10px 22px rgba(130, 120, 90, 0.24), inset 0 1px 0 #fff;
+  display: grid;
+  place-items: center;
+  font-family: "Great Vibes", cursive;
+  font-size: 2rem;
+  color: #a5823f;
+}
+
+.fz-badge {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 4px solid #f0dcae;
+  background: radial-gradient(circle at 34% 28%, #fdf6e3, #d9b877 70%, #b8934f);
+  box-shadow: 0 10px 20px rgba(150, 124, 76, 0.28), inset 0 2px 4px rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #6b532a;
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- mini map */
+
+.fz-minimap {
+  display: block;
+  margin: 0 auto;
+  width: min(300px, 80%);
+  height: auto;
+}
+
+.fz-map-region {
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+
+.fz-map-star {
+  transition: opacity 0.5s ease;
+}
+
+/* --------------------------------------------------------------- results */
+
+.fz-results {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 28px));
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  padding: 26px 28px;
+  text-align: center;
+  animation: fz-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fz-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.fz-stat {
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 234, 232, 0.9);
+}
+
+.fz-stat b {
+  display: block;
+  font-size: 1.5rem;
+  color: #4d6f79;
+  line-height: 1.2;
+}
+
+.fz-stat span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  color: #809592;
+}
+
+.fz-grade {
+  font-family: "Great Vibes", cursive;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  color: #a5823f;
+  line-height: 1.1;
+}
+
+.fz-note {
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: #7b908d;
+}
+
+.fz-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+/* --------------------------------------------------------------- park UI */
+
+.fz-park-title {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: clamp(74px, 12vh, 120px);
+  text-align: center;
+  pointer-events: none;
+}
+
+.fz-park-card {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: min(620px, calc(100vw - 28px));
+  padding: 16px 18px;
+  animation: fz-rise 0.45s ease both;
+}
+
+.fz-park-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fz-park-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  border: 1px solid rgba(210, 224, 224, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.fz-park-item:hover {
+  transform: translateY(-2px);
+  border-color: #d9b877;
+}
+
+.fz-park-item.locked {
+  opacity: 0.62;
+}
+
+.fz-park-item b {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: #405b5b;
+}
+
+.fz-park-item small {
+  font-size: 0.62rem;
+  line-height: 1.4;
+  color: #849895;
+}
+
+.fz-unlock-toast {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: clamp(158px, 23vh, 226px);
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 184, 119, 0.85);
+  background: rgba(255, 250, 238, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(150, 124, 76, 0.2);
+  color: #8a6c38;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  animation: fz-rise 0.4s ease both;
+}
+
+.fz-locked-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(250, 243, 228, 0.9);
+  color: #8a7048;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  animation: fz-rise 0.3s ease both;
+}
+
+/* -------------------------------------------------------------- animation */
+
+/* Uses the standalone `translate` property so it never fights the
+   translateX(-50%) centring on panels and cards. */
+@keyframes fz-rise {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* panels that are centred with translate(-50%, -50%) need their own rise */
+.fz-chapter,
+.fz-results,
+.fz-panel--story {
+  animation-name: fz-rise-centre;
+}
+
+@keyframes fz-rise-centre {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 14px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes fz-pop {
+  0% {
+    transform: scale(1);
+  }
+  55% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.fz-shake {
+  animation: fz-shake 0.45s ease;
+}
+
+@keyframes fz-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+@media (max-width: 640px) {
+  .fz-header {
+    padding: 10px 12px;
+  }
+  .fz-chip {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  .fz-sound-label {
+    display: none;
+  }
+  .fz-header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 72vw;
+  }
+  .fz-panel,
+  .fz-results,
+  .fz-chapter {
+    padding: 18px 16px;
+  }
+  .fz-quest {
+    top: 66px;
+    max-height: 64vh;
+    padding: 16px 14px;
+  }
+  .fz-options {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .fz-option {
+    min-height: 52px;
+  }
+  .fz-park-list {
+    grid-template-columns: 1fr;
+  }
+  .fz-speech {
+    bottom: 10px;
+    padding: 9px 12px;
+    font-size: 0.8rem;
+  }
+  .fz-park-title {
+    top: 70px;
+  }
+  .fz-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-root *,
+  .fz-root *::before,
+  .fz-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

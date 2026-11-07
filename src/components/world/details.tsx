@@ -129,9 +129,8 @@ export function Cottage({ position, rotation = 0 }: { position: V3; rotation?: n
         <boxGeometry args={[0.28, 0.46, 0.03]} />
         <meshStandardMaterial color="#9a7458" roughness={0.8} />
       </mesh>
-      <mesh position={[0.08, 0.36, 0.53]}>
+      <mesh position={[0.08, 0.36, 0.53]} material={mat.gold}>
         <sphereGeometry args={[0.022, 8, 6]} />
-        <primitive object={mat.gold} attach="material" />
       </mesh>
       {/* windows */}
       {[-0.38, 0.38].map((x) => (

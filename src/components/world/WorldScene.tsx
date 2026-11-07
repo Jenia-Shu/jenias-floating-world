@@ -941,16 +941,16 @@ export default function WorldScene({
                       ? pick(lang, "Read the letter", "查看信件")
                       : `${pick(lang, "Enter", "进入")} ${pick(lang, t.name, t.nameZh)}`}
                   </button>
-                  {/* The chapter page (five scenes + the collie's "follow her"
-                      ending) had no way in. Keep the 3D letter view above and
-                      add this small secondary link so the story is reachable. */}
+                  {/* A way to read the letter without having to tap the tiny 3D
+                      bottle — useful on touch screens and without WebGL. The
+                      letter's own ending now leads on to the Fun Zone. */}
                   {t.id === "community" && (
                     <button
                       type="button"
                       onClick={() => onOpenRegion("community")}
                       className="pointer-events-auto text-[0.6rem] tracking-[0.1em] text-foreground/60 underline underline-offset-4 transition-colors hover:text-foreground"
                     >
-                      {pick(lang, "Enter A Little Message", "进入 一封信的岛")}
+                      {pick(lang, "Open the letter", "直接读这封信")}
                     </button>
                   )}
                 </div>

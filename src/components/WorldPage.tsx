@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { AboutPage } from "@/components/about/AboutPage";
 import { CollectionsPage } from "@/components/collections/CollectionsPage";
@@ -5,10 +6,17 @@ import { GalleryPage } from "@/components/gallery/GalleryPage";
 import { LangSwitch } from "@/components/LangSwitch";
 import { MessageIslandPage } from "@/components/message/MessageIslandPage";
 import { pick, t, useLang } from "@/lib/i18n";
+import type { Session } from "@/lib/user";
 import type { RegionMeta } from "@/lib/world/regions";
+
+/** The Fun Zone brings its own 3D chunk; keep it out of the map's first load. */
+const FunZonePage = lazy(() =>
+  import("@/components/fun/FunZonePage").then((m) => ({ default: m.FunZonePage })),
+);
 
 type Props = {
   region: RegionMeta;
+  user: Session;
   seen: boolean;
   onClose: () => void;
   onDone: () => void;
@@ -26,6 +34,7 @@ type Props = {
 /** Full-screen reading surface for one island. The map keeps rendering behind it. */
 export function WorldPage({
   region,
+  user,
   seen,
   onClose,
   onDone,
@@ -72,6 +81,28 @@ export function WorldPage({
         onOpenLetter={onOpenLetter}
         onFollow={onFollow}
       />
+    );
+  }
+
+  // Fun Zone is a full 3D chapter of its own: the 3D park with the three game
+  // facilities, and World Explorer behind the first one.
+  if (region.id === "fun") {
+    return (
+      <Suspense
+        fallback={
+          <div className="world-page fixed inset-0 z-30 grid place-items-center bg-background/92 backdrop-blur-2xl">
+            <span className="loader-orb" aria-hidden />
+          </div>
+        }
+      >
+        <FunZonePage
+          user={user}
+          seen={seen}
+          onDone={onDone}
+          onClose={onClose}
+          onOpenWall={onOpenWall}
+        />
+      </Suspense>
     );
   }
 
