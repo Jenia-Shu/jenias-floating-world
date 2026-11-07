@@ -428,6 +428,35 @@
   margin-top: 20px;
 }
 
+/* "Three chapters is a lot" — a quiet way to end Game 02 early, offered once
+   Chapter 01 is on record. Never styled like a primary action. */
+.tm-skip-btn {
+  display: block;
+  margin: 14px auto 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+.tm-skip-btn:hover { opacity: 1; }
+
+.tm-skip-hud {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  z-index: 4;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 0.68rem;
+  color: #5b6c62;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease;
+}
+.tm-skip-hud:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-1px); }
+
 .tm-ticket {
   display: flex;
   align-items: center;

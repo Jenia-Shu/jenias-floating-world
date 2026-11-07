@@ -12,7 +12,15 @@
  * silhouette.
  */
 
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { surfaceHeight, type IslandShape } from "@/lib/world/terrain";
@@ -214,9 +222,17 @@ type Props = {
    * the camera, so the close-up is actually of her and not of an empty meadow.
    */
   stay?: boolean | undefined;
+  /**
+   * When the guide leads the visitor to the next island, Princess walks to
+   * this world-space spot instead of running her usual loop. The camera reads
+   * `positionRef` each frame so the view follows her the whole way.
+   */
+  leadTo?: { x: number; y: number; z: number } | null | undefined;
+  /** Live world position, written every frame for the follow camera. */
+  positionRef?: MutableRefObject<THREE.Vector3> | undefined;
 };
 
-export function Collie({ reducedMotion, onFound, onPoke, stay = false }: Props) {
+export function Collie({ reducedMotion, onFound, onPoke, stay = false, leadTo, positionRef }: Props) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -266,7 +282,8 @@ export function Collie({ reducedMotion, onFound, onPoke, stay = false }: Props) 
     const t = clock.elapsedTime;
 
     const seg = route[s.seg]!;
-    const moving = !stay && s.wait <= 0 && s.greet <= 0;
+    const leading = !!leadTo;
+    const moving = !stay && !leading && s.wait <= 0 && s.greet <= 0;
     // A wandering dog, not a racing one: slow enough that a visitor can catch
     // up and tap it without chasing the pointer.
     const speed = 1.45;
@@ -293,27 +310,45 @@ export function Collie({ reducedMotion, onFound, onPoke, stay = false }: Props) 
       }
     }
 
-    const a = seg.a;
-    const b = seg.b;
-    const k = Math.min(1, Math.max(0, s.u));
-    const x = stay ? GUIDE_SPOT.x : a.x + (b.x - a.x) * k;
-    const z = stay ? GUIDE_SPOT.z : a.z + (b.z - a.z) * k;
-    let y = stay ? GUIDE_SPOT.y : a.y + (b.y - a.y) * k;
-    if (!stay && seg.air) y += Math.sin(Math.PI * k) * 0.85;
+    if (leading) {
+      // A guided walk: ease toward the next island's edge instead of running
+      // the usual loop. The camera reads positionRef each frame and follows.
+      const to = leadTo!;
+      const k = Math.min(1, step * 1.15);
+      g.position.x += (to.x - g.position.x) * k;
+      g.position.y += (to.y - g.position.y) * k;
+      g.position.z += (to.z - g.position.z) * k;
+      const want = Math.atan2(to.x - g.position.x, to.z - g.position.z);
+      let diff = want - s.yaw;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      s.yaw += diff * Math.min(1, step * 6);
+      if (!reducedMotion) s.phase += step * 11;
+    } else {
+      const a = seg.a;
+      const b = seg.b;
+      const k = Math.min(1, Math.max(0, s.u));
+      const x = stay ? GUIDE_SPOT.x : a.x + (b.x - a.x) * k;
+      const z = stay ? GUIDE_SPOT.z : a.z + (b.z - a.z) * k;
+      let y = stay ? GUIDE_SPOT.y : a.y + (b.y - a.y) * k;
+      if (!stay && seg.air) y += Math.sin(Math.PI * k) * 0.85;
 
-    g.position.set(x, y, z);
+      g.position.set(x, y, z);
 
-    const want = stay ? GUIDE_SPOT.yaw : Math.atan2(b.x - a.x, b.z - a.z);
-    let diff = want - s.yaw;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    s.yaw += diff * Math.min(1, step * 6);
+      const want = stay ? GUIDE_SPOT.yaw : Math.atan2(b.x - a.x, b.z - a.z);
+      let diff = want - s.yaw;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      s.yaw += diff * Math.min(1, step * 6);
+
+      // trot cycle only advances while the paws are actually on the ground
+      if (!reducedMotion && moving && !seg.air) s.phase += step * 11;
+    }
     g.rotation.y = s.yaw;
+    if (positionRef) positionRef.current.copy(g.position);
 
-    // trot cycle only advances while the paws are actually on the ground
-    if (!reducedMotion && moving && !seg.air) s.phase += step * 11;
     const p = s.phase;
-    const swing = moving && !seg.air ? 0.5 : 0;
+    const swing = (moving && !seg.air) || leading ? 0.5 : 0;
 
     // A click drops her into a sit — back paws folded under, chest lifted, tail
     // going — until the greet wears off.

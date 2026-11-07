@@ -309,6 +309,13 @@ export function WorldMap({
   // The Message Island hands over to the Fun Zone through a short fog crossing
   // rather than a hard cut between two different 3D canvases.
   const [funArrival, setFunArrival] = useState(false);
+  /**
+   * Princess leads the visitor to this island after a chapter closes. Only the
+   * first two hand-offs are guided (My World → Gallery → Collections); after
+   * Collections the bottle and the letter take over, exactly as asked.
+   */
+  const [guideTo, setGuideTo] = useState<"gallery" | "collections" | null>(null);
+  const clearGuide = useCallback(() => setGuideTo(null), []);
 
   /** Each visitor carries their own exploration track, keyed by English name. */
   const storeKey = useMemo(() => visitedKey(user), [user]);
@@ -338,7 +345,8 @@ export function WorldMap({
         // ignore storage failures
       }
     }
-    setVisited((prev) => (prev.includes("about") ? prev : [...prev, "about"]));
+    // My World opens fresh, not "already seen": its own completion button is
+    // what marks the chapter done and lets Princess lead on to the Gallery.
     setOnboarding(false);
     setOpenId("about");
   }, []);
@@ -431,9 +439,17 @@ export function WorldMap({
       // itself through its own completion check, so only the reading areas are
       // recorded here.
       if (id !== "collections") recordSection(user, id);
-      if (close) setOpenId(null);
+      if (close) {
+        setOpenId(null);
+        // Only My World and the Gallery get a guided hand-off, and only once:
+        // a page that has already been seen closes with onClose, never onDone.
+        const next = id === "about" ? "gallery" : id === "gallery" ? "collections" : null;
+        if (next && !onboarding && !visited.includes(next) && isUnlocked(next, [...visited, id])) {
+          setGuideTo(next);
+        }
+      }
     },
-    [storeKey, user],
+    [storeKey, user, onboarding, visited],
   );
 
   const resetProgress = useCallback(() => {
@@ -446,6 +462,7 @@ export function WorldMap({
     setVisited([]);
     setBottle("pending");
     setLetterOpen(false);
+    setGuideTo(null);
   }, [storeKey, bottleStoreKey]);
 
   // The bottle is owed once the three islands before the Message Island are
@@ -547,6 +564,8 @@ export function WorldMap({
               onBottleDelivered={markDelivered}
               onOpenLetter={openLetter}
               overviewTick={overviewTick}
+              guideTo={guideTo}
+              onGuideDone={clearGuide}
             />
           </Suspense>
         </SceneBoundary>

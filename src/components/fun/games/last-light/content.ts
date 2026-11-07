@@ -1,9 +1,11 @@
 /**
  * The Last Light — all words on Game 03.
  *
- * This game is a closing ceremony, not a quiz: no questions, no score, no
- * ranking. The three fragments and the five closing lines are shown exactly
- * as written; no attribution or "draft" label appears anywhere in the UI.
+ * A closing ceremony built from three classic little games (memory pairs,
+ * a breathing-light rhythm tap, and gathering drifting lights). No questions,
+ * no score, no ranking, no miss state. The three fragments and the five
+ * closing lines are shown exactly as written; no attribution or "draft"
+ * label appears anywhere in the UI.
  *
  * `id` values are storage keys — keep them stable once visitors have played.
  */
@@ -62,6 +64,55 @@ export const FRAGMENTS: Fragment[] = [
     touch: { en: "Let it settle", zh: "轻轻读一遍" },
   },
 ];
+
+/* --------------------------------------------------------------- Act 2 ---
+ * Three classic little games, one per fragment. They share a single goal —
+ * light three lamps — so they read as one ceremony rather than a minigame
+ * compilation. Every mechanic is fail-safe: no timer, no miss, no counter of
+ * mistakes, no score.
+ */
+
+export const LAMP_TITLE: Line = { en: "Three little lights", zh: "三盏小灯" };
+export const LAMP_LEAD: Line = {
+  en: "Before the last light opens, let's light these three lamps together.",
+  zh: "在最后一束光亮起之前，和我一起点亮这三盏灯吧。",
+};
+export const LAMP_OF = (n: number) => ({ en: `LAMP ${n} / 3`, zh: `第 ${n} 盏 / 共 3 盏` });
+export const LAMP_DONE: Line = { en: "All three lamps are lit.", zh: "三盏灯都亮了。" };
+
+/** Lamp 1 — Memory Match. Six cards, three pairs, no wrong-turn counter. */
+export const MEMORY_TITLE: Line = { en: "Find the pairs", zh: "找出成对的微光" };
+export const MEMORY_HINT: Line = {
+  en: "Turn over two cards and look for a match. Take your time — nothing here is counted.",
+  zh: "翻开两张牌，找找成对的那一对。慢慢来，这里什么都不记。",
+};
+export const MEMORY_DONE: Line = { en: "The first lamp is on.", zh: "第一盏灯亮了。" };
+/** Three pairs of quiet symbols; the pair identity is not a question. */
+export const PAIR_SYMBOLS = ["✦", "☾", "❋"] as const;
+
+/** Lamp 2 — a breathing light; three taps, no miss state at all. */
+export const RHYTHM_TITLE: Line = { en: "Keep the light company", zh: "跟着光呼吸" };
+export const RHYTHM_HINT: Line = {
+  en: "Tap the light three times. If you catch it at its brightest, it glows a little more — either way it counts.",
+  zh: "轻点这束光三下。点在它最亮的一刻，会亮得更盛一些；无论哪一下，都算数。",
+};
+export const RHYTHM_TAP: Line = { en: "Tap", zh: "轻点" };
+export const RHYTHM_DONE: Line = { en: "The second lamp is on.", zh: "第二盏灯亮了。" };
+export const RHYTHM_BULLSEYE: Line = { en: "just right", zh: "正好" };
+
+/** Lamp 3 — Collect & Light. Nine drifting motes into one lamp. */
+export const COLLECT_TITLE: Line = { en: "Gather the drifting lights", zh: "收拢散落的微光" };
+export const COLLECT_HINT: Line = {
+  en: "Nine little lights got loose. Tap them, one by one, and they will find their way into the lamp.",
+  zh: "九颗小光点跑散了。一颗一颗轻点它们，它们就会回到灯里。",
+};
+export const COLLECT_DONE: Line = { en: "The third lamp is on.", zh: "第三盏灯亮了。" };
+export const COLLECT_COUNT = (n: number) => ({ en: `${n} / 9`, zh: `${n} / 9` });
+
+/** Shown after each lamp lights, with that fragment's own writing. */
+export const NEXT_LIGHT: Line = { en: "Next light →", zh: "下一盏灯 →" };
+export const ALL_LIT_NEXT: Line = { en: "Let the light gather →", zh: "让光聚起来 →" };
+export const LAMP_EXIT: Line = { en: "Leave for the Fun Zone", zh: "先回乐园" };
 
 /** Act 3 — the five lines the visitor chose between (options 2, 4, 5, 7, 10). */
 export type Choice = { id: string; line: Line };

@@ -10,6 +10,7 @@ import { Cloud, Flowers, LockMarker, Mushroom, Rock, Tree } from "./details";
 import { Grow } from "./Grow";
 import { ShadowTicker } from "./ShadowTicker";
 import { Collie, GUIDE_SPOT } from "./collie";
+import { LeadDialogue } from "./GuideDialogue";
 import { FrameCap } from "@/components/FrameCap";
 import { IslandTheme } from "./islands";
 import { CollieDelivery } from "./CollieDelivery";
@@ -60,6 +61,8 @@ function CameraRig({
   resetSignal,
   locked,
   onIntroDone,
+  followActive,
+  followRef,
 }: {
   reducedMotion: boolean;
   focus: string | null;
@@ -71,6 +74,9 @@ function CameraRig({
   /** Keep the camera still and the orbit controls off (a cutscene is running). */
   locked: boolean;
   onIntroDone: () => void;
+  /** Princess is leading the way: a per-frame follow owns the camera instead of a one-shot flight. */
+  followActive: boolean;
+  followRef: React.MutableRefObject<THREE.Vector3> | null;
 }) {
   const { camera } = useThree();
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
@@ -139,9 +145,10 @@ function CameraRig({
   lockedRef.current = locked;
 
   // One flight helper for the opening swoop, every focus change and the
-  // bottle-delivery framing.
+  // bottle-delivery framing. While Princess leads the way the per-frame follow
+  // below owns the camera, so no flight may pull it back to the overview.
   useEffect(() => {
-    if (!controls) return;
+    if (!controls || followActive) return;
     const intro = !introDone.current;
     introDone.current = true;
     const toPos = (view ? view.pos : overviewRef.current).clone();
@@ -167,7 +174,7 @@ function CameraRig({
         dur,
       };
     }
-  }, [controls, camera, view, cueView, reducedMotion, resetSignal, onIntroDone]);
+  }, [controls, camera, view, cueView, reducedMotion, resetSignal, onIntroDone, followActive]);
 
   // The delivery and the dog peek both lean right in, so the orbit floor has
   // to come down with them.
@@ -182,22 +189,56 @@ function CameraRig({
   }, [controls, locked]);
 
   useFrame((_, dt) => {
+    if (!controls) return;
     const f = flight.current;
-    if (!f || !controls) return;
-    f.t = Math.min(f.dur, f.t + Math.min(dt, 0.05));
-    const p = f.t / f.dur;
-    const e = 1 - Math.pow(1 - p, 3);
-    camera.position.lerpVectors(f.fromPos, f.toPos, e);
-    controls.target.lerpVectors(f.fromTarget, f.toTarget, e);
+    if (f) {
+      f.t = Math.min(f.dur, f.t + Math.min(dt, 0.05));
+      const p = f.t / f.dur;
+      const e = 1 - Math.pow(1 - p, 3);
+      camera.position.lerpVectors(f.fromPos, f.toPos, e);
+      controls.target.lerpVectors(f.fromTarget, f.toTarget, e);
+      controls.enabled = false;
+      controls.update();
+      if (p >= 1) {
+        flight.current = null;
+        controls.enabled = !lockedRef.current;
+        if (!announcedIntro.current) {
+          announcedIntro.current = true;
+          onIntroDone();
+        }
+      }
+      return;
+    }
+    if (!followActive || !followRef) return;
+    // The dog writes its live world position into followRef every frame. Ease
+    // both the target and the camera toward her so the view travels with her
+    // rather than cutting between two fixed shots.
+    const p = followRef.current;
+    const target = new THREE.Vector3(p.x, p.y + 0.35, p.z);
+    controls.target.lerp(target, Math.min(1, dt * 2.6));
+    camera.position.lerp(target.clone().add(FOLLOW_OFFSET), Math.min(1, dt * 1.9));
     controls.enabled = false;
     controls.update();
-    if (p >= 1) {
-      flight.current = null;
-      controls.enabled = !lockedRef.current;
-      if (!announcedIntro.current) {
-        announcedIntro.current = true;
-        onIntroDone();
-      }
+  });
+  return null;
+}
+
+/**
+ * The lead dialogue must not appear while the camera is still flying in from
+ * the overview — otherwise Princess is a speck and the visitor is looking at
+ * an empty meadow. This fires the moment the close-up actually lands.
+ */
+function LeadArrivalSignal({ active, onLanded }: { active: boolean; onLanded: () => void }) {
+  const { camera } = useThree();
+  const fired = useRef(false);
+  useEffect(() => {
+    fired.current = false;
+  }, [active]);
+  useFrame(() => {
+    if (!active || fired.current) return;
+    if (camera.position.distanceTo(LEAD_CAMERA_POS) < 0.4) {
+      fired.current = true;
+      onLanded();
     }
   });
   return null;
@@ -218,6 +259,29 @@ const GUIDE_CAMERA: CameraCue = {
   dur: 1.6,
   minDistance: 1.8,
 };
+
+/** Same framing, but quicker: the dialogue waits for this one to land. */
+const LEAD_CAMERA: CameraCue = { ...GUIDE_CAMERA, dur: 1.0 };
+const LEAD_CAMERA_POS = new THREE.Vector3(...LEAD_CAMERA.pos);
+
+/** A soft 3/4 angle kept while the camera walks along with Princess. */
+const FOLLOW_OFFSET = new THREE.Vector3(3.4, 3.6, 6.2);
+
+/**
+ * The spot Princess leads to: a landing point on the near edge of the target
+ * island, the same one her ordinary patrol route uses. Declared here so the
+ * guide stays in step with REGIONS_3D instead of hard-coding coordinates.
+ */
+function leadSpot(id: string): { x: number; y: number; z: number } {
+  const r = REGIONS_3D.find((x) => x.id === id)!;
+  const [ix, iy, iz] = r.pos;
+  const d = Math.hypot(ix, iz) || 1;
+  return {
+    x: ix - (ix / d) * r.shape.radius * 0.55,
+    y: iy + 0.05,
+    z: iz - (iz / d) * r.shape.radius * 0.55,
+  };
+}
 
 /** Projects world points to screen each frame and positions plain DOM labels. */
 function LabelProjector({
@@ -559,6 +623,14 @@ type Props = {
   onOpenLetter?: (() => void) | undefined;
   /** Bumped when the letter closes, so the camera drifts back to the overview. */
   overviewTick?: number;
+  /**
+   * Princess leads the visitor here after finishing My World or the Gallery.
+   * Only those two hand-offs are guided; everything after Collections has its
+   * own cue (the bottle, then the letter).
+   */
+  guideTo?: "gallery" | "collections" | null;
+  /** The led walk is over — hand the map back to the visitor. */
+  onGuideDone?: (() => void) | undefined;
 };
 
 export default function WorldScene({
@@ -576,6 +648,8 @@ export default function WorldScene({
   onBottleDelivered,
   onOpenLetter,
   overviewTick = 0,
+  guideTo = null,
+  onGuideDone,
 }: Props) {
   const quality = sceneSettings().world;
   const [lang] = useLang();
@@ -592,6 +666,28 @@ export default function WorldScene({
   const [resetSignal, setResetSignal] = useState(0);
   const [introReady, setIntroReady] = useState(false);
   const deliveryStarted = useRef(false);
+
+  /* Princess leads the visitor to the next island. Four beats: a close-up on
+     her while she speaks, a walk with the camera following, a quick lean onto
+     that island's "Enter" button, then straight back out to the overview. */
+  type LeadStage = "idle" | "closeup" | "walk" | "arrive";
+  const leadActive = guideTo !== null;
+  const [leadStage, setLeadStage] = useState<LeadStage>("idle");
+  /** Holds the line back until the close-up has actually landed. */
+  const [leadReady, setLeadReady] = useState(false);
+  const onLeadLanded = useCallback(() => setLeadReady(true), []);
+  const followActive = leadActive && leadStage === "walk";
+  /** Seeded at GUIDE_SPOT so the follow camera never jumps from the origin. */
+  const colliePos = useRef(new THREE.Vector3(GUIDE_SPOT.x, GUIDE_SPOT.y, GUIDE_SPOT.z));
+  const leadTarget = useMemo(
+    () => (guideTo && (leadStage === "walk" || leadStage === "arrive") ? leadSpot(guideTo) : null),
+    [guideTo, leadStage],
+  );
+  const leadName = useMemo(() => {
+    const r = guideTo ? REGIONS_3D.find((x) => x.id === guideTo) : undefined;
+    return r ? { en: r.name, zh: r.nameZh } : null;
+  }, [guideTo]);
+
   const onIntroDone = useCallback(() => setIntroReady(true), []);
   const handleDelivered = useCallback(() => onBottleDelivered?.(), [onBottleDelivered]);
   const handleOpenLetter = useCallback(() => onOpenLetter?.(), [onOpenLetter]);
@@ -642,7 +738,7 @@ export default function WorldScene({
   // Once the first three islands are done, the Message Island delivers a bottle:
   // the camera turns to its tide pool and the collie does the rest.
   useEffect(() => {
-    if (!bottleDue || !introReady || deliveryStarted.current) return;
+    if (!bottleDue || !introReady || deliveryStarted.current || leadActive) return;
     const id = window.setTimeout(() => {
       deliveryStarted.current = true;
       setFocus(null);
@@ -650,7 +746,7 @@ export default function WorldScene({
       setCine(true);
     }, 700);
     return () => window.clearTimeout(id);
-  }, [bottleDue, introReady]);
+  }, [bottleDue, introReady, leadActive]);
 
   // First-time visitors get a guide: the camera leans onto the princess (the
   // border collie) on the home island and stays put while she speaks. It only
@@ -665,13 +761,61 @@ export default function WorldScene({
 
   // Releasing the guide sends the camera back to the overview and frees the orbit.
   useEffect(() => {
-    if (onboarding || !guideStarted.current) return;
+    if (onboarding || !guideStarted.current || leadActive) return;
     guideStarted.current = false;
     setCue(null);
     setFocus(null);
     setCine(false);
     setResetSignal((n) => n + 1);
-  }, [onboarding]);
+  }, [onboarding, leadActive]);
+
+  /* ------------------------------------------------ Princess leads onward */
+  // A chapter has just closed: frame Princess closely and hold while she speaks.
+  useEffect(() => {
+    if (!guideTo) return;
+    setLeadStage("closeup");
+    setLeadReady(false);
+    setFocus(null);
+    setPeek(null);
+    setCue(LEAD_CAMERA);
+    setCine(true);
+  }, [guideTo]);
+
+  // A slow or throttled canvas may never quite hit the arrival threshold; the
+  // line still has to appear, so cap the wait as well.
+  useEffect(() => {
+    if (!guideTo || leadStage !== "closeup") return;
+    const id = window.setTimeout(() => setLeadReady(true), reducedMotion ? 0 : 3200);
+    return () => window.clearTimeout(id);
+  }, [guideTo, leadStage, reducedMotion]);
+
+  // When the lead is dismissed, give the whole map back to the visitor.
+  useEffect(() => {
+    if (guideTo || leadStage === "idle") return;
+    setLeadStage("idle");
+    setCue(null);
+    setFocus(null);
+    setCine(false);
+    setResetSignal((n) => n + 1);
+  }, [guideTo, leadStage]);
+
+  // The walk is long enough for her to reach the island's near edge.
+  useEffect(() => {
+    if (!guideTo || leadStage !== "walk") return;
+    const id = window.setTimeout(() => setLeadStage("arrive"), reducedMotion ? 800 : 3000);
+    return () => window.clearTimeout(id);
+  }, [guideTo, leadStage, reducedMotion]);
+
+  // Zoom onto the island's "Enter" button, then immediately pull back out.
+  // Leaving the labels visible for this beat is what tells the visitor what to
+  // do next; the pulse class draws the eye to the right one.
+  useEffect(() => {
+    if (!guideTo || leadStage !== "arrive") return;
+    setCue(null);
+    setFocus(guideTo);
+    const id = window.setTimeout(() => onGuideDone?.(), reducedMotion ? 900 : 1700);
+    return () => window.clearTimeout(id);
+  }, [guideTo, leadStage, reducedMotion, onGuideDone]);
 
   // Closing the letter returns to the overview, not to whatever was framed before.
   const lastTick = useRef(overviewTick);
@@ -796,6 +940,10 @@ export default function WorldScene({
     ...REGIONS_3D.map((r) => ({ id: r.id, name: r.name, nameZh: r.nameZh, locked: !isUnlocked(r.id, visited) })),
   ];
   const toastDef = toast ? BADGE_BY_ID.get(toast) : undefined;
+  // During the led walk the labels stay out of the way; on arrival they come
+  // back for one beat so the "Enter" button can be leaned onto and pointed at.
+  const labelsVisible = !letterView && (!cine || (leadActive && leadStage === "arrive"));
+  const leadPulse = leadActive && leadStage === "arrive" ? guideTo : null;
 
   return (
     <div
@@ -892,15 +1040,22 @@ export default function WorldScene({
             revealed={!onboarding}
             onEgg={onEgg}
           />
-          {/* The Message Island is not part of the visit order, but it has its
-              own small one: bare like every other island at the start, then it
-              grows in by itself once Collections has been explored. */}
+          {/* Two islands grow on their own clock rather than on their own visit:
+              the Message Island appears with Collections, and the Fun Zone's
+              ferris wheel / coaster should already be there the moment the
+              games unlock — an unlocked park must not look like bare grass. */}
           {REGIONS_3D.map((r) => (
             <RegionIsland
               key={r.id}
               data={r}
               unlocked={isUnlocked(r.id, visited)}
-              built={r.id === "community" ? visited.includes("collections") : visited.includes(r.id)}
+              built={
+                r.id === "community"
+                  ? visited.includes("collections")
+                  : r.id === "fun"
+                    ? isUnlocked("fun", visited)
+                    : visited.includes(r.id)
+              }
               reducedMotion={reducedMotion}
               onSelect={() => focusIsland(r.id)}
               onHover={setHovered}
@@ -922,8 +1077,15 @@ export default function WorldScene({
             />
           )}
           <SteppingRocks />
-          {(onboarding || (!cine && !(bottleFloating && bottleUnread))) && (
-            <Collie reducedMotion={reducedMotion} onFound={onAnimal} onPoke={onColliePoke} stay={onboarding} />
+          {(onboarding || leadActive || (!cine && !(bottleFloating && bottleUnread))) && (
+            <Collie
+              reducedMotion={reducedMotion}
+              onFound={onAnimal}
+              onPoke={onColliePoke}
+              stay={onboarding || (leadActive && leadStage === "closeup")}
+              leadTo={leadTarget}
+              positionRef={colliePos}
+            />
           )}
           <Cloud position={[-14, 6, -16]} scale={2.2} speed={0.04} reducedMotion={reducedMotion} />
           <Cloud position={[16, 8, -20]} scale={2.8} speed={0.03} reducedMotion={reducedMotion} />
@@ -957,11 +1119,14 @@ export default function WorldScene({
           resetSignal={resetSignal}
           locked={cine}
           onIntroDone={onIntroDone}
+          followActive={followActive}
+          followRef={colliePos}
         />
+        <LeadArrivalSignal active={leadActive && leadStage === "closeup"} onLanded={onLeadLanded} />
         <LabelProjector targets={labels} reducedMotion={reducedMotion} />
       </Canvas>
       <div
-        className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${cine || letterView ? "opacity-0 [&_*]:pointer-events-none" : "opacity-100"}`}
+        className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${labelsVisible ? "opacity-100" : "opacity-0 [&_*]:pointer-events-none"}`}
         data-tags={tags.length}
       >
         {tags.map((t, i) => (
@@ -1000,7 +1165,7 @@ export default function WorldScene({
                         onOpenRegion(t.id);
                       }
                     }}
-                    className="pointer-events-auto rounded-full bg-foreground px-3.5 py-1.5 text-[0.66rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85"
+                    className={`pointer-events-auto rounded-full bg-foreground px-3.5 py-1.5 text-[0.66rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85 ${leadPulse === t.id ? "region-enter--lead" : ""}`}
                   >
                     {t.id === "community"
                       ? pick(lang, "Read the letter", "查看信件")
@@ -1024,6 +1189,14 @@ export default function WorldScene({
           </div>
         ))}
       </div>
+      {leadActive && leadStage === "closeup" && leadReady && leadName && (
+        <LeadDialogue
+          lang={lang}
+          reducedMotion={reducedMotion}
+          name={leadName}
+          onFollow={() => setLeadStage("walk")}
+        />
+      )}
       {surprise && <SurpriseOverlay kind={surprise} />}
       {toastDef && (
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">

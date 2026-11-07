@@ -326,6 +326,7 @@ export function FunZonePage({ user, onClose, onOpenWall, seen, onDone, onFinishJ
           lang={lang}
           state={state}
           commit={commit}
+          reducedMotion={reducedMotion}
           onExit={enterPark}
           onFinish={() => {
             // The curtain lives at the app root so it outlives this page when

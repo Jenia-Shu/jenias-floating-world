@@ -504,6 +504,15 @@ export function AchievementWall({ user, onClose }: { user: Session; onClose: () 
                           <span className="ach-num">No. {def.num}</span>
                           <span className="ach-name">{pick(lang, def.en, def.zh)}</span>
                           <span className="ach-sub">{pick(lang, def.zh, def.en)}</span>
+                          {/* The condition lives on the card itself, not only
+                              inside the detail modal: visitors kept asking how
+                              to earn a badge, and the wall never told them. */}
+                          <span className="ach-condition">
+                            <span className="ach-condition-label">
+                              {L("How to earn", "完成条件")}
+                            </span>
+                            {pick(lang, def.condition.en, def.condition.zh)}
+                          </span>
                           <span className="ach-card-progress">
                             {rec
                               ? L(

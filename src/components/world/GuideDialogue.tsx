@@ -86,3 +86,56 @@ export function GuideDialogue({ active, lang, reducedMotion, onFinish }: Props) 
     </div>
   );
 }
+
+/**
+ * Princess's one-line cue after a chapter is finished. She has just been
+ * framed in a close-up; the button hands the camera over to her as she walks
+ * to the next island in the right order.
+ */
+export function LeadDialogue({
+  lang,
+  reducedMotion,
+  name,
+  onFollow,
+}: {
+  lang: "zh" | "en";
+  reducedMotion: boolean;
+  name: Line;
+  onFollow: () => void;
+}) {
+  const t = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-8">
+      <div
+        role="dialog"
+        aria-live="polite"
+        className="pointer-events-auto w-full max-w-md select-none rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-[0_22px_54px_-28px_rgba(20,40,60,0.62)] backdrop-blur-md"
+        style={reducedMotion ? undefined : { animation: "rise 520ms cubic-bezier(.22,.68,.24,1) both" }}
+      >
+        <div className="mb-2 flex items-center gap-2">
+          <span aria-hidden className="text-lg leading-none">
+            🐾
+          </span>
+          <span className="text-[0.66rem] font-medium tracking-[0.18em] uppercase text-foreground/70">
+            公主 · PRINCESS
+          </span>
+        </div>
+        <p className="min-h-[3.2em] text-[0.95rem] leading-relaxed text-foreground">
+          {t(
+            `That's this stop done. Come on — let's head to the next one, ${name.en}!`,
+            `这一站看完啦。走吧，我们进入下一站——${name.zh}！`,
+          )}
+        </p>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onFollow}
+            className="rounded-full bg-foreground px-4 py-1.5 text-[0.72rem] font-medium tracking-[0.06em] text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-85"
+          >
+            {t("Follow Princess →", "跟上公主 →")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

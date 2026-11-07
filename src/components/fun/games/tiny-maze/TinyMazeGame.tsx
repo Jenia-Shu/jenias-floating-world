@@ -45,6 +45,8 @@ export type MazeView = {
   starsFound: number;
   completedBefore: boolean;
   isFinal: boolean;
+  /** Chapter 01 is done — the "finish early" shortcut is now offered. */
+  canSkip: boolean;
 };
 
 export type MazeActions = {
@@ -57,6 +59,8 @@ export type MazeActions = {
   dismissToast: () => void;
   exitToPark: () => void;
   nextChapter: () => void;
+  /** Three chapters felt like a lot: finish Game 02 early, with full credit. */
+  skipAll: () => void;
 };
 
 type HookArgs = {
@@ -197,6 +201,41 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     setLevelIndex((i) => Math.min(i + 1, LEVELS.length - 1));
     setPhase("intro");
   }, []);
+
+  /**
+   * Three chapters felt tedious during playtesting. After Chapter 01 the
+   * visitor may end Game 02 early: every remaining chapter is credited, the
+   * keepsake ticket is issued and Game 03 unlocks exactly as a full run would.
+   */
+  const skipAll = useCallback(() => {
+    const s = statsRef.current;
+    const levels = { ...stateRef.current.maze.levels };
+    for (const level of LEVELS) {
+      const key = String(level.id);
+      const prev = levels[key] ?? {
+        completed: false,
+        challenges: 0,
+        bestStars: 0,
+        chest: false,
+        starMask: [false, false, false] as boolean[],
+      };
+      levels[key] = {
+        ...prev,
+        completed: true,
+        bestStars: Math.max(prev.bestStars, s.stars.filter(Boolean).length),
+        chest: prev.chest || s.chest,
+      };
+    }
+    const withMaze: FunState = { ...stateRef.current, maze: { levels } };
+    const completion = markCompleted(withMaze, "tiny-maze");
+    const hasTicket = completion.state.rewards.includes(TICKET);
+    commit(hasTicket ? completion.state : { ...completion.state, rewards: [...completion.state.rewards, TICKET] });
+    if (completion.unlockedNext) onUnlocked(completion.unlockedNext);
+    playSound("complete");
+    resetRun();
+    setPhase("intro");
+    onExit();
+  }, [commit, onUnlocked, resetRun, onExit]);
 
   const complete = useCallback(() => {
     const s = statsRef.current;
@@ -396,6 +435,10 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     starsFound: stats.stars.filter(Boolean).length,
     completedBefore: record.completed,
     isFinal,
+    // "After Chapter 01" either means the first chapter is on record, or the
+    // visitor has already moved on to a later one.
+    canSkip:
+      state.maze.levels[String(LEVELS[0]!.id)]?.completed === true || levelIndex > 0,
   };
 
   const actions: MazeActions = {
@@ -408,6 +451,7 @@ export function useTinyMazeGame({ state, commit, onUnlocked, lang, reducedMotion
     dismissToast,
     exitToPark,
     nextChapter,
+    skipAll,
   };
 
   // `tick` is intentionally read here so the live map re-renders while open.
@@ -593,6 +637,11 @@ function IntroCard({ view, actions, lang }: { view: MazeView; actions: MazeActio
         <button type="button" className="tm-primary" onClick={actions.begin}>
           {pick(lang, "Start exploring", "开始探索")} <span aria-hidden>→</span>
         </button>
+        {view.canSkip && (
+          <button type="button" className="tm-textbtn" style={{ margin: "14px auto 0" }} onClick={actions.skipAll}>
+            {pick(lang, "Skip the remaining chapters →", "跳过剩余关卡，提前结束 →")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -644,9 +693,14 @@ function ResultCard({ view, actions, lang }: { view: MazeView; actions: MazeActi
           </button>
         </div>
         {!view.isFinal && (
-          <button type="button" className="tm-textbtn" onClick={actions.exitToPark}>
-            {pick(lang, "Leave for the Fun Zone", "先回乐园")}
-          </button>
+          <>
+            <button type="button" className="tm-ghost tm-skip-btn" onClick={actions.skipAll}>
+              {pick(lang, "Skip the remaining chapters →", "跳过剩余关卡，提前结束 →")}
+            </button>
+            <button type="button" className="tm-textbtn" onClick={actions.exitToPark}>
+              {pick(lang, "Leave for the Fun Zone", "先回乐园")}
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -656,6 +710,8 @@ function ResultCard({ view, actions, lang }: { view: MazeView; actions: MazeActi
 export function TinyMazeGame({ view, actions, lang }: TinyMazeGameProps) {
   const { phase, level, stats, nearby, mapOpen, hintLevel, toast, starsFound } = view;
   const showHud = phase === "playing" || phase === "paused";
+  // Available at any moment after Chapter 01, not only on the result card.
+  const skipLabel = pick(lang, "Skip the rest · finish early", "跳过剩余关卡 · 提前结束");
   const prompt = nearbyLabel(nearby, view, lang);
 
   return (
@@ -742,6 +798,12 @@ export function TinyMazeGame({ view, actions, lang }: TinyMazeGameProps) {
             </div>
           )}
         </>
+      )}
+
+      {showHud && view.canSkip && !mapOpen && (
+        <button type="button" className="tm-skip-hud" onClick={actions.skipAll} aria-label={skipLabel}>
+          {skipLabel}
+        </button>
       )}
 
       {phase === "intro" && <IntroCard view={view} actions={actions} lang={lang} />}

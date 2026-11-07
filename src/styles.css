@@ -189,6 +189,17 @@
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--leaf) 30%, transparent);
 }
 
+/* Princess has led the visitor to the next island: enlarge its "Enter" button
+   for two beats, then the camera pulls straight back out to the overview. */
+@keyframes lead-pop {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.24); }
+}
+.region-enter--lead {
+  animation: lead-pop 780ms cubic-bezier(0.22, 0.68, 0.24, 1) 2;
+  box-shadow: 0 0 0 7px color-mix(in oklab, var(--gold) 48%, transparent), 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
 .loader-orb {
   width: 2.5rem;
   height: 2.5rem;
@@ -204,7 +215,7 @@
 .panel-enter { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome-enter, .panel-enter { animation: none; }
+  .welcome-enter, .panel-enter, .region-enter--lead { animation: none; }
   .loader-orb { animation-duration: 3s; }
 }
 
@@ -607,6 +618,36 @@
 }
 .ach-card.is-unlocked .ach-card-progress {
   color: var(--accent-foreground);
+}
+
+/* The unlock condition sits on every card, above the progress line. Kept to
+   three lines so the grid stays even when a condition is wordy. */
+.ach-condition {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  font-size: 0.58rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.ach-condition-label {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent-foreground);
+  opacity: 0.85;
+}
+.ach-card.is-unlocked .ach-condition {
+  background: color-mix(in oklch, var(--accent-foreground) 12%, transparent);
 }
 
 .ach-notice {
