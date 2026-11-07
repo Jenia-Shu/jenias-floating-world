@@ -52,8 +52,11 @@ export const PLAYER_RADIUS = 0.26;
 export const MOVE_SPEED = 2.45;
 /** Hold Shift to let the princess hurry — a gentle boost, not a sprint. */
 export const SHIFT_BOOST = 1.7;
-/** A cell is 1.15 wide: reach a little past one adjacent cell centre. */
-export const INTERACT_RANGE = 1.55;
+/** A cell is 1.15 wide. Reach must comfortably cover a whole adjacent cell
+ *  (so a statue is interactable even when the princess arrives at the far edge
+ *  of the cell next to it), but stay under two cells so it never latches onto
+ *  something two squares away. */
+export const INTERACT_RANGE = 1.9;
 
 export const DIRECTIONS: Bi[] = [
   { en: "North", zh: "北" },
