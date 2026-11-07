@@ -437,36 +437,31 @@ export function WorldMap({
 
   const openLetter = useCallback(() => {
     setLetterOpen(true);
+    // Warm the Fun Zone chunk while the letter is being read, so the fog
+    // always parts onto an already-mounted 3D park instead of a loading gap.
+    void import("@/components/fun/FunZonePage").catch(() => {});
     setBottle((prev) => {
       if (prev !== "read") writeBottle(bottleStoreKey, "read");
       return "read";
     });
   }, [bottleStoreKey]);
 
-  // The Message Island ends with the collie leading into the Fun Zone. Mark
-  // the chapter finished first so the visit chain stays honest, then play the
-  // crossing: fog gathers over the map, the collie walks the wooden bridge,
-  // and the fog opens onto the 3D park.
+  // The letter ends with "跟上它". Mount the 3D park immediately and lay a
+  // short veil of fog on top of it, so the fog parts onto the park itself —
+  // no separate crossing page, no drawn wooden bridge.
   const followToFun = useCallback(() => {
     finishRegion("community", false);
-    // The letter can be the starting point now; close it so it never sits on
-    // top of the fog crossing or the 3D park.
+    // Close the letter so it never sits on top of the veil or the 3D park.
     setLetterOpen(false);
-    if (reducedMotion) {
-      setOpenId("fun");
-      return;
-    }
-    // Warm the lazy Fun Zone chunk while the fog is gathering, so the reveal
-    // never lands on a loading spinner. Failure here is harmless: WorldPage's
-    // own lazy import will simply request it again when it mounts.
-    void import("@/components/fun/FunZonePage").catch(() => {});
-    setOpenId(null);
-    setFunArrival(true);
+    // The veil holds at full cover until the lazy park is on screen, then
+    // parts. Mount the park as soon as its chunk is ready; on failure
+    // WorldPage's own lazy import will request it again and show its fallback.
+    if (!reducedMotion) setFunArrival(true);
+    void import("@/components/fun/FunZonePage")
+      .catch(() => {})
+      .finally(() => setOpenId("fun"));
   }, [finishRegion, reducedMotion]);
 
-  // While the veil is at its thickest, swap the page behind it. The two WebGL
-  // canvases therefore never appear to jump in front of the visitor.
-  const arrivalReveal = useCallback(() => setOpenId("fun"), []);
   const arrivalDone = useCallback(() => setFunArrival(false), []);
 
   const closeLetter = useCallback(() => {
@@ -629,14 +624,7 @@ export function WorldMap({
         />
       )}
 
-      {funArrival && (
-        <BridgeToFun
-          lang={lang}
-          reducedMotion={reducedMotion}
-          onReveal={arrivalReveal}
-          onDone={arrivalDone}
-        />
-      )}
+      {funArrival && <BridgeToFun reducedMotion={reducedMotion} onDone={arrivalDone} />}
 
       {wallOpen && <AchievementWall user={user} onClose={() => setWallOpen(false)} />}
 

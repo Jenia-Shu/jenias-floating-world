@@ -351,7 +351,7 @@ export function WorldExplorerGame({ game, lang, onExit }: Props) {
       {v.stage === "intro" && (
         <div className="fz-panel fz-panel--intro fz-glass">
           <p className="fz-eyebrow">{V(lang, "FUN ZONE · GAME 01", "乐园 · 第 01 个游戏")}</p>
-          <h1 className="fz-display fz-title">WORLD EXPLORER</h1>
+          <h1 className="fz-title--clear">WORLD EXPLORER</h1>
           <p className="fz-sub">Every little detail tells a story.</p>
           <p className="fz-note" style={{ marginTop: 14 }}>
             {V(lang, "A small adventure through Jenia's World", "世界探索 · 一场关于 Jenia's World 的小小探险")}

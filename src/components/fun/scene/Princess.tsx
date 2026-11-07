@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CollieBody } from "@/components/world/collie";
-import { PALETTE, RoundedBox } from "./shared";
+import { PALETTE } from "./shared";
 
 export type PrincessMood =
   | "enter"
@@ -219,14 +219,10 @@ export function Princess({ mood, chapter = 1, signal, reducedMotion }: Props) {
         legs={legs}
         mouth={<BlinkLids reducedMotion={reducedMotion} />}
       />
-      {/* one small sky-blue explorer backpack — nothing else */}
-      <RoundedBox args={[0.13, 0.11, 0.07]} radius={0.03} smoothness={2} position={[0, 0.3, -0.1]} castShadow>
-        <meshStandardMaterial color="#9fc4dd" roughness={0.85} />
-      </RoundedBox>
-      <mesh position={[0, 0.3, -0.145]}>
-        <circleGeometry args={[0.018, 12]} />
-        <meshStandardMaterial color={PALETTE.gold} metalness={0.5} roughness={0.4} />
-      </mesh>
+      {/* 公主 keeps the site's plain black-and-white collie markings. A small
+          sky-blue backpack used to sit at [0, 0.3, -0.1] — inside the body
+          ellipsoid (centre y=0.21, radius ~0.21), so only a thin upright slab
+          poked out and read as a chair stuck into her back. Removed. */}
     </group>
   );
 }
