@@ -2,20 +2,26 @@ import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume1, Volume2, VolumeX } from "lucide-react";
 
 /**
- * Global background-music control, fixed top-right.
+ * Background-music control. It lives inside the world's top bar, to the LEFT
+ * of the visitor's name, so it never covers the language switch or sign-out.
  *
- * Two buttons: a play/pause toggle and a volume button that reveals a slider.
- * Defaults to a very low volume and loops forever. To avoid jank, we use a
- * plain <audio loop> element whose decode happens off the main thread (it will
- * not make the 3D scene stutter), and we only preload metadata.
+ * Two compact buttons: a play/pause toggle and a volume button that reveals a
+ * slider in a small floating panel. Defaults to a very low volume and loops.
+ * To avoid jank we use a plain <audio loop> element whose decode happens off
+ * the main thread, and we only preload metadata.
  *
- * The track lives at /music.mp3 (drop your file into /public). Until that file
- * exists we fall back to a soft synthesised pad so the site is never silent.
+ * `startWhen` is the world saying "the visitor is in, the islands are visible":
+ * nothing plays on the sign-in door or the cover. The first attempt rides the
+ * sticky activation from the "enter world" click; if a browser still blocks it,
+ * the next pointer/key gesture starts it.
+ *
+ * The track lives at /music.mp3. Until that file exists we fall back to a soft
+ * synthesised pad so the site is never silent.
  */
 
-const VOL_KEY = "jenia:music:volume";
+const VOL_KEY = "jenia:music:volume:v2";
 const PLAY_KEY = "jenia:music:on";
-const DEFAULT_VOL = 0.12;
+const DEFAULT_VOL = 0.06;
 
 type Fallback = {
   ctx: AudioContext;
@@ -23,7 +29,7 @@ type Fallback = {
   stop: () => void;
 } | null;
 
-export function MusicPlayer() {
+export function MusicPlayer({ startWhen = false }: { startWhen?: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fbRef = useRef<Fallback>(null);
   const startedRef = useRef(false);
@@ -53,27 +59,27 @@ export function MusicPlayer() {
     if (typeof window !== "undefined") localStorage.setItem(VOL_KEY, String(volume));
   }, [volume]);
 
-  // Auto-start on the first user gesture (browsers block autoplay-with-sound).
+  // The sign-in door and the cover stay silent. Only once the world is really
+  // visible do we try to start: the "enter world" click leaves the page with
+  // sticky activation, and stricter browsers get a next-gesture fallback.
   useEffect(() => {
-    if (playing === false) return;
-    const start = (e: Event) => {
-      if (startedRef.current) return;
-      // Don't treat interaction with the player itself as the "first gesture".
-      const t = e.target as HTMLElement | null;
-      if (t && t.closest("[data-mp]")) return;
-      startedRef.current = true;
+    if (!startWhen) return;
+    const tryStart = () => {
+      if (startedRef.current || !playingRef.current) return;
       beginPlayback();
     };
-    window.addEventListener("pointerdown", start, { once: true });
-    window.addEventListener("keydown", start, { once: true });
+    tryStart();
+    window.addEventListener("pointerdown", tryStart);
+    window.addEventListener("keydown", tryStart);
     return () => {
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
+      window.removeEventListener("pointerdown", tryStart);
+      window.removeEventListener("keydown", tryStart);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing]);
+  }, [startWhen, playing]);
 
   function beginPlayback() {
+    startedRef.current = true;
     const el = audioRef.current;
     if (el && hasFile !== false) {
       el.volume = volume;
@@ -170,38 +176,40 @@ export function MusicPlayer() {
   return (
     <div
       data-mp
-      className="fixed right-3 top-3 z-[60] flex items-center gap-1.5 rounded-full border border-black/5 bg-white/70 p-1 pl-2 shadow-lg shadow-black/5 backdrop-blur-md"
+      className="pointer-events-auto relative flex items-center gap-0.5 rounded-full border border-black/10 bg-white/60 p-0.5 backdrop-blur-md"
     >
-      {showVol && (
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          aria-label="音量大小"
-          className="h-1 w-24 cursor-pointer accent-sky-500"
-          style={{ accentColor: "#5b8bbf" }}
-        />
-      )}
       <button
         type="button"
         onClick={() => setShowVol((s) => !s)}
         aria-label="调整音量"
         aria-pressed={showVol}
-        className="rounded-full p-2 text-slate-600 transition-colors hover:bg-black/5 hover:text-slate-900"
+        className="rounded-full p-1.5 text-black/45 transition-colors hover:bg-black/5 hover:text-black/80"
       >
-        <VolIcon size={18} strokeWidth={1.8} />
+        <VolIcon size={16} strokeWidth={1.8} />
       </button>
       <button
         type="button"
         onClick={toggle}
         aria-label={playing ? "暂停背景音乐" : "播放背景音乐"}
-        className="rounded-full p-2 text-slate-600 transition-colors hover:bg-black/5 hover:text-slate-900"
+        className="rounded-full p-1.5 text-black/45 transition-colors hover:bg-black/5 hover:text-black/80"
       >
-        {playing ? <Pause size={18} strokeWidth={1.8} /> : <Play size={18} strokeWidth={1.8} />}
+        {playing ? <Pause size={16} strokeWidth={1.8} /> : <Play size={16} strokeWidth={1.8} />}
       </button>
+      {showVol && (
+        <div className="absolute right-0 top-full z-30 mt-2 flex items-center rounded-full border border-black/10 bg-white/90 px-3 py-2 shadow-md shadow-black/5 backdrop-blur-md">
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            aria-label="音量大小"
+            className="h-1 w-24 cursor-pointer accent-sky-500"
+            style={{ accentColor: "#5b8bbf" }}
+          />
+        </div>
+      )}
       <audio
         ref={audioRef}
         src={`${import.meta.env.BASE_URL}music.mp3`}

@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { MusicPlayer } from "../components/MusicPlayer";
 
 function NotFoundComponent() {
   return (
@@ -121,8 +120,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {/* The music control lives in the world's top bar, not here: the door
+          and the cover are silent. */}
       <Outlet />
-      <MusicPlayer />
     </QueryClientProvider>
   );
 }

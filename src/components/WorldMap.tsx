@@ -22,6 +22,7 @@ import { WorldPage } from "./WorldPage";
 import { LetterModal } from "./world/LetterModal";
 import { BridgeToFun } from "./message/BridgeToFun";
 import { GuideDialogue } from "./world/GuideDialogue";
+import { MusicPlayer } from "./MusicPlayer";
 
 const WorldScene = lazy(() => import("./world/WorldScene"));
 
@@ -624,6 +625,7 @@ export function WorldMap({
           Jenia&apos;s World
         </span>
         <div className="pointer-events-auto flex items-center gap-2">
+          <MusicPlayer startWhen={active && phase === "ready"} />
           <button
             type="button"
             onClick={() => setNicknameOpen(true)}
