@@ -321,15 +321,12 @@ export function WorldMap({
   const storeKey = useMemo(() => visitedKey(user), [user]);
   const bottleStoreKey = useMemo(() => bottleKey(user), [user]);
 
-  // First-time visitors meet a guide (Princess the border collie). The flag is
-  // sticky so the welcome only plays once; `?onboard=force` replays it for review.
+  // The opening belongs to the visitor's own progress, not to a global
+  // once-ever flag: a fresh (or reset) account must always start with Princess
+  // and bare islands, even if somebody else signed in on this browser before.
+  // `?onboard=force` replays it for review.
   const [onboarding, setOnboarding] = useState(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboard") === "force") return true;
-    try {
-      if (localStorage.getItem("jenia:onboarded:v1")) return false;
-    } catch {
-      // ignore storage failures — fall through to the visited check
-    }
     return readVisited(storeKey).length === 0;
   });
 
@@ -338,13 +335,8 @@ export function WorldMap({
   // to fly the camera back to the overview and grow the home island in full
   // view, which read as a jarring jump; the page now covers that beat entirely.
   const finishOnboarding = useCallback(() => {
-    if (new URLSearchParams(window.location.search).get("onboard") !== "force") {
-      try {
-        localStorage.setItem("jenia:onboarded:v1", "1");
-      } catch {
-        // ignore storage failures
-      }
-    }
+    // No global "seen it once" flag: the guide returns whenever this visitor's
+    // progress is empty, and stays away once an island has been finished.
     // My World opens fresh, not "already seen": its own completion button is
     // what marks the chapter done and lets Princess lead on to the Gallery.
     setOnboarding(false);
@@ -463,6 +455,8 @@ export function WorldMap({
     setBottle("pending");
     setLetterOpen(false);
     setGuideTo(null);
+    // Starting over means the opening as well: bare islands and Princess.
+    setOnboarding(true);
   }, [storeKey, bottleStoreKey]);
 
   // The bottle is owed once the three islands before the Message Island are
