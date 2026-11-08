@@ -27,18 +27,12 @@ function Index() {
   // ?diag=1 renders a bare WebGL self-check — the fastest way to find out why a
   // browser refuses to draw the islands.
   const diag = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("diag");
-  const [user, setUser] = useState<Session | null>(() => {
-    // ?world=1 is the debug entry: it also skips the gate so the map can be
-    // opened from a headless browser without an existing session.
-    const debug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("world");
-    return currentSession() ?? (debug ? { en: "Guest", zh: "访客" } : null);
-  });
-  const [stage, setStage] = useState<"welcome" | "leaving" | "world">(() =>
-    // ?world=1 jumps straight to the map — handy for checking it without clicking through.
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("world")
-      ? "world"
-      : "welcome",
-  );
+  // Every visit starts at the door: sign in, then the cover, then the world.
+  // There is deliberately no preview shortcut that fabricates a "Guest"
+  // session and drops straight onto an empty map with the guide dialogue —
+  // Princess is only met after the visitor enters Jenia's World from the cover.
+  const [user, setUser] = useState<Session | null>(() => currentSession());
+  const [stage, setStage] = useState<"welcome" | "leaving" | "world">("welcome");
   const [worldMounted, setWorldMounted] = useState(false);
   // Game 03's closing curtain. It belongs at the app root so it survives the
   // swap from the 3D world back to the Welcome cover.

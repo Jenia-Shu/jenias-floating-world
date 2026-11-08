@@ -526,9 +526,15 @@ export function WorldMap({
   }, [onFinishJourney]);
 
   const closeLetter = useCallback(() => {
+    // Reading the letter completes the Message Island whichever button is
+    // picked. "Keep exploring" used to only close the modal, leaving `fun`
+    // locked forever: isUnlocked("fun") needs "community" in the visit list,
+    // and that was only recorded by "Follow her". Marking it here also lets
+    // visitors enter the Fun Zone straight from the big map later on.
+    finishRegion("community", false);
     setLetterOpen(false);
     setOverviewTick((n) => n + 1);
-  }, []);
+  }, [finishRegion]);
 
   const seen = visited.length;
   const total = REGIONS.length;
