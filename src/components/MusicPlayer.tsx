@@ -204,7 +204,7 @@ export function MusicPlayer() {
       </button>
       <audio
         ref={audioRef}
-        src="/music.mp3"
+        src={`${import.meta.env.BASE_URL}music.mp3`}
         loop
         preload="metadata"
         onCanPlay={() => setHasFile(true)}
